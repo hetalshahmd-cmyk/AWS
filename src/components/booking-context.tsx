@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { defaultVisitReason } from "@/lib/practice";
-import type { PatientType } from "@/lib/availability";
+import type { DayAvailability, PatientType } from "@/lib/availability";
 import InsuranceModal from "./InsuranceModal";
 import BookingFlowModal from "./BookingFlowModal";
 
@@ -14,12 +14,16 @@ type BookingState = {
   setReason: (value: string) => void;
   insurance: Insurance;
   setInsurance: (value: Insurance) => void;
-  /** null = "I'm paying for myself" was chosen, undefined-ish = untouched */
   insuranceChosen: boolean;
   patientType: PatientType;
   setPatientType: (value: PatientType) => void;
   openInsurance: () => void;
   openBooking: (iso?: string | null) => void;
+  /** Fetches a window of real availability from the server. */
+  loadAvailability: (startIso: string, days: number) => Promise<DayAvailability[]>;
+  /** Bumped after a booking so open calendars refetch. */
+  version: number;
+  bumpVersion: () => void;
 };
 
 const BookingContext = createContext<BookingState | null>(null);
@@ -28,6 +32,19 @@ export function useBooking() {
   const ctx = useContext(BookingContext);
   if (!ctx) throw new Error("useBooking must be used inside <BookingProvider>");
   return ctx;
+}
+
+/** Shared fetch + cache-free helper so both the card and the modal agree. */
+export async function fetchAvailability(
+  startIso: string,
+  days: number,
+): Promise<DayAvailability[]> {
+  const response = await fetch(`/api/availability?start=${startIso}&days=${days}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error("Could not load availability");
+  const data = (await response.json()) as { days: DayAvailability[] };
+  return data.days;
 }
 
 export function BookingProvider({
@@ -44,8 +61,9 @@ export function BookingProvider({
   const [insuranceOpen, setInsuranceOpen] = useState(false);
   const [bookingIso, setBookingIso] = useState<string | null>(null);
   const [bookingOpen, setBookingOpen] = useState(false);
+  const [version, setVersion] = useState(0);
 
-  // A single lock so closing the stacked insurance modal doesn't unlock the page
+  // One lock so closing the stacked insurance modal doesn't unlock the page
   // while the booking modal is still open.
   useEffect(() => {
     if (!insuranceOpen && !bookingOpen) return;
@@ -54,6 +72,8 @@ export function BookingProvider({
       document.body.style.overflow = "";
     };
   }, [insuranceOpen, bookingOpen]);
+
+  const bumpVersion = useCallback(() => setVersion((prev) => prev + 1), []);
 
   const value = useMemo<BookingState>(
     () => ({
@@ -73,8 +93,11 @@ export function BookingProvider({
         setBookingIso(iso ?? null);
         setBookingOpen(true);
       },
+      loadAvailability: fetchAvailability,
+      version,
+      bumpVersion,
     }),
-    [todayIso, reason, insurance, insuranceChosen, patientType],
+    [todayIso, reason, insurance, insuranceChosen, patientType, version, bumpVersion],
   );
 
   return (

@@ -1,97 +1,138 @@
 # Arizona Women Specialists
 
-The practice website plus the provider booking flow, built with the latest
-Next.js (App Router), React 19, TypeScript and Tailwind CSS v4.
+The practice website, a real appointment booking flow, and an admin panel —
+Next.js (App Router), React 19, TypeScript, Tailwind CSS v4 and MongoDB.
 
 ```bash
-npm run dev     # http://localhost:3000
-npm run build   # production build
-npm start       # serve the production build
+cp .env.example .env.local   # then fill it in
+npm run seed                 # creates the admin account + pricing plans
+npm run dev                  # http://localhost:3000
+npm run build
+npm start
 npm run lint
 ```
 
+## Environment
+
+`.env.local` (gitignored — `.env.example` is the template):
+
+| Variable | What it does |
+| --- | --- |
+| `MONGODB_URI` | Connection string. Local `mongodb://127.0.0.1:27017` or an Atlas SRV URI |
+| `MONGODB_DB` | Database name (default `arizona`) |
+| `SESSION_SECRET` | Signs the admin session cookie. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+
+Admin credentials are **not** in the env — accounts live in the `admins`
+collection with scrypt-hashed passwords.
+
+## Seeding
+
+```bash
+npm run seed                                         # admin + pricing plans
+npm run seed -- --email you@clinic.com --password "your password" --name "Front desk"
+npm run seed -- --slots 14                           # also add 14 days of weekday slots
+```
+
+Default account: `admin@arizonawomen.com` / `Arizona@2026` — change it by
+re-running with `--email/--password`. Re-running is safe: it resets that
+admin's password, leaves existing pricing edits alone, and skips duplicate
+slots. `scripts/seed.mjs` also creates every index.
+
 ## Routes
+
+**Public**
 
 | Route | What's there |
 | --- | --- |
-| `/` | Home — hero, chips, illustration, quick links, insurance section |
-| `/services` | Six service cards, "Being seen is simple" steps, FAQ accordion |
-| `/pricing` | Free pregnancy test banner, six price cards, AHCCCS/WIC note, full insurance list |
-| `/about` | The three providers, credentials |
-| `/contact` | Phoenix + Glendale offices, directions, office hours |
-| `/book` | Provider profile and the booking flow |
+| `/` | Home — hero, chips, illustration, quick links, insurance |
+| `/services` | Service cards, "Being seen is simple" steps, FAQ |
+| `/pricing` | Free test banner, **price cards read from MongoDB**, insurance list |
+| `/about` | The three providers |
+| `/contact` | Phoenix + Glendale offices, hours |
+| `/book` | Profile and the booking flow — reads real slots, writes real bookings |
 
-Everything that used to link out to healow.com now points at `/book`.
+**Admin** (`/admin`, session-guarded — signed out visitors are redirected to `/admin/login`)
 
-The five marketing pages live in the `(site)` route group, which supplies the
-announcement bar, sticky header and footer. `/book` sits outside that group, so
-it renders bare — no site header or footer — as designed.
+| Route | What you can do |
+| --- | --- |
+| `/admin` | Counts for upcoming/total/cancelled bookings, open slots, plans + latest bookings |
+| `/admin/bookings` | Every booking, filter and search, cancel / restore / delete |
+| `/admin/slots` | Bulk-add slots over a date range by weekday, with time presets and capacity; switch individual times off; delete unbooked ones |
+| `/admin/pricing` | Edit, reorder, add and delete the cards on `/pricing` |
 
-`index.html` is the original single-file site this was ported from. Nothing
-references it any more; keep it as a reference or delete it.
+**API**
 
-## Booking flow (`/book`)
+| Method + path | Auth | Purpose |
+| --- | --- | --- |
+| `GET /api/availability?start=&days=` | public | Open slots per day |
+| `POST /api/bookings` | public | Create a booking |
+| `GET/POST/DELETE /api/admin/session` | — | Sign in / who am I / sign out |
+| `GET /api/admin/bookings` | admin | List (optional `?status=`) |
+| `PATCH/DELETE /api/admin/bookings/[id]` | admin | Change status / delete |
+| `GET/POST /api/admin/slots` | admin | List a range / bulk create |
+| `PATCH/DELETE /api/admin/slots/[id]` | admin | Activate-deactivate / delete |
+| `GET/POST /api/admin/plans` | admin | List / create |
+| `PATCH/DELETE /api/admin/plans/[id]` | admin | Edit / delete |
 
-Left column: profile with **Highlights** and **Location** tabs. Right column: the
-booking card — visit reason, insurance, New/Existing patient toggle, two-week
-availability grid with prev/next paging.
+## How booking works
 
-1. **Insurance modal** — search, **Popular carriers** as logo tiles, **All
-   carriers** grouped alphabetically with a `#` group, "I'm paying for myself" at
-   the bottom. Picking a carrier drills into its plans. Opens from the booking
-   card, the "200+ plans" link, and the booking modal.
-2. **Visit reason** — dropdown grouped into *Popular* and *All Visit Reasons*.
-3. **Booking modal** — click any gold day (or "View more availability"): provider
-   header, scheduling details, **Available appointments** as gold time chips, then
-   **More availability** for the rest of the window.
-4. **Tell us a bit about you** — clicking a time opens the form: summary card,
-   email, legal first/last name, date of birth, sex, optional gender identity and
-   pronouns, then the yellow **Continue** button.
-5. **Confirmation** — when, reason, patient type, insurance, location.
+1. Admin adds slots in `/admin/slots` — patients can only book times that exist
+   there.
+2. `/book` fetches `/api/availability`; days with open slots are highlighted and
+   every time chip is a real slot id.
+3. Choosing a time opens "Tell us a bit about you"; **Continue** posts to
+   `/api/bookings`.
+4. The seat is claimed with a conditional `$inc` (`booked < capacity`), so two
+   people racing for the last opening can't both win — the loser gets a 409 and
+   the calendar refreshes.
+5. The booking appears in `/admin/bookings`. Cancelling frees the seat; restoring
+   takes it back.
 
-Scheduling state lives in `booking-context.tsx`, so the card and both modals stay
-in sync — changing the visit reason reshuffles availability everywhere.
+Collections: `admins`, `plans`, `slots` (`date`, `time`, `minutes`, `capacity`,
+`booked`, `active`), `bookings` (patient, reason, insurance, status, slot
+reference).
+
+## Admin authentication
+
+Accounts are documents in `admins`:
+
+```js
+{ email, name, passwordHash, createdAt, lastLoginAt }
+```
+
+`passwordHash` is `scrypt$N$r$p$salt$hash` (all base64url) built with Node's
+built-in `crypto.scrypt` — a fresh 16-byte salt per password, so the plain text
+is never stored or recoverable. Sign-in compares with `timingSafeEqual`, and an
+unknown email still runs a hash so it takes the same time as a wrong password.
+
+A successful sign-in sets an HttpOnly cookie holding `{id, email, expires}`,
+signed with `SESSION_SECRET` (HMAC-SHA256, 8-hour expiry). The admin layout
+re-reads the account from Mongo on every page load, so deleting the document
+locks that person out immediately.
 
 ## Structure
 
 ```
 src/
   app/
-    layout.tsx              # fonts, metadata, page shell
-    globals.css             # Tailwind v4 @theme tokens
-    (site)/                 # marketing pages — header + footer
-      layout.tsx  page.tsx  services/  pricing/  about/  contact/
-    book/page.tsx           # booking page — no site chrome
+    layout.tsx  globals.css        # Tailwind v4 @theme tokens
+    (site)/                        # marketing pages — header + footer
+    book/page.tsx                  # booking page — no site chrome
+    admin/login/                   # sign-in
+    admin/(dash)/                  # guarded shell + dashboard/bookings/slots/pricing
+    api/                           # availability, bookings, admin CRUD
   components/
-    site/                   # SiteNav, SiteFooter, InsuranceSection, Faq,
-                            # HeroIllustration, Ico, ui (Button/Band/SectionHead)
-    booking-context.tsx     # shared scheduling state + modal mounting
-    ProfilePanel.tsx  BookingCard.tsx  BookingFlowModal.tsx
-    InsuranceModal.tsx  VisitReasonSelect.tsx  icons.tsx
+    site/                          # SiteNav, SiteFooter, Ico, ui, hero, insurance, FAQ
+    admin/                         # AdminNav, tables, editors, shared inputs
+    BookingCard  BookingFlowModal  InsuranceModal  ProfilePanel  booking-context
   lib/
-    site.ts                 # all marketing copy and data
-    practice.ts             # booking copy, visit reasons, carriers and plans
-    availability.ts         # date helpers + mock slot generation
+    db.ts  models.ts  repo.ts      # Mongo client, types, all data access
+    auth.ts  api-helpers.ts        # session cookie, admin route wrapper
+    site.ts  practice.ts  availability.ts
 ```
 
 ## Design tokens
 
-Two palettes coexist in `globals.css`:
-
-- **Site** — wine `#7C2C3E`, sage `#4E7B73` on white, serif display face
-  (`font-display`), used by everything in `(site)`.
-- **Booking** — the cream/ink/gold set used by `/book`.
-
-## Notes on the availability data
-
-`src/lib/availability.ts` generates slots from a deterministic FNV-1a hash of
-`date | patientType | visitReason` — no `Math.random()`, so server and client
-render identical markup and hydration stays clean. Weekends are closed, past
-dates are empty, Fridays are mornings only, and new patients see fewer openings.
-
-Swap `buildWindow()` for a real scheduling API and the UI needs no changes — it
-only depends on the `DaySlots[]` shape. `/book` uses `revalidate = 3600` so the
-window always starts from the current day rather than build time.
-
-Carrier logos are text tiles standing in for the real marks, and no appointment
-is actually booked — the flow is a local mock.
+One brand, two densities. Wine `#7C2C3E` and sage `#4E7B73` on white for the
+marketing pages and admin; `/book` uses the same hues in a lighter scheduling
+palette (`cream`, `line`, `gold` = the "has openings" accent).

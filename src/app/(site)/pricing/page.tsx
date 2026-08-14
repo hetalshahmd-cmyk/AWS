@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Ico from "@/components/site/Ico";
 import InsuranceSection from "@/components/site/InsuranceSection";
 import { Band, BookButton, SectionHead } from "@/components/site/ui";
-import { prices, site } from "@/lib/site";
+import { site } from "@/lib/site";
+import { getPlans } from "@/lib/repo";
+import type { Plan } from "@/lib/models";
 
 export const metadata: Metadata = {
   title: `Pricing — ${site.name}`,
@@ -10,7 +12,17 @@ export const metadata: Metadata = {
     "Transparent self-pay pricing: $100 new patient visit, $75 follow-up, $75 ultrasound, plus birth control services. AHCCCS & WIC accepted.",
 };
 
-export default function PricingPage() {
+// Prices are managed from /admin/pricing, so read them on every request.
+export const dynamic = "force-dynamic";
+
+export default async function PricingPage() {
+  let prices: Pick<Plan, "tag" | "tagIcon" | "amount" | "title" | "body">[] = [];
+  try {
+    prices = await getPlans();
+  } catch (error) {
+    console.error("Could not load plans from MongoDB", error);
+  }
+
   return (
     <>
       <Band>
@@ -34,6 +46,13 @@ export default function PricingPage() {
           </div>
           <BookButton size="sm" />
         </div>
+
+        {prices.length === 0 && (
+          <p className="rounded-2xl border border-mist bg-shell p-6 text-plum-soft">
+            Our current rates aren&apos;t showing right now — please call {site.phone} and we&apos;ll
+            quote your visit.
+          </p>
+        )}
 
         <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-4">
           {prices.map((price) => (

@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { practice } from "@/lib/practice";
-import { addDays, buildWindow, formatLong, formatRange } from "@/lib/availability";
-import { useBooking } from "./booking-context";
+import { addDays, formatLong, formatRange, type DayAvailability } from "@/lib/availability";
+import { fetchAvailability, useBooking } from "./booking-context";
 import VisitReasonSelect from "./VisitReasonSelect";
 import { ChevronLeft, ChevronRight, CheckIcon, ShieldSmall } from "./icons";
 
@@ -20,14 +20,35 @@ export default function BookingCard() {
     setPatientType,
     openInsurance,
     openBooking,
+    version,
   } = useBooking();
 
   const [offset, setOffset] = useState(0);
+  const [days, setDays] = useState<DayAvailability[] | null>(null);
+  const [error, setError] = useState("");
+
   const startIso = addDays(todayIso, offset * WINDOW);
-  const days = useMemo(
-    () => buildWindow(startIso, todayIso, patientType, reason, WINDOW),
-    [startIso, todayIso, patientType, reason],
-  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchAvailability(startIso, WINDOW)
+      .then((result) => {
+        if (cancelled) return;
+        setDays(result);
+        setError("");
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDays([]);
+          setError("Availability is unavailable right now. Please call the office.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [startIso, version]);
 
   return (
     <section
@@ -102,32 +123,39 @@ export default function BookingCard() {
       </div>
 
       <div className="mt-3 grid grid-cols-7 gap-1.5">
-        {days.map((day) => {
+        {(days ?? placeholderDays(startIso)).map((day) => {
           const open = day.slots.length > 0;
+          const loading = days === null;
           return (
             <button
               key={day.iso}
               type="button"
-              disabled={!open}
+              disabled={!open || loading}
               aria-label={`${formatLong(day.iso)} — ${
                 open ? `${day.slots.length} appointments` : "no appointments"
               }`}
               onClick={() => openBooking(day.iso)}
               className={`flex min-h-[86px] flex-col gap-1 rounded-md px-2 py-2.5 text-left transition ${
-                open
+                open && !loading
                   ? "bg-gold font-medium text-teal hover:bg-gold-deep"
                   : "cursor-default bg-cream-deep text-muted"
-              }`}
+              } ${loading ? "animate-pulse" : ""}`}
             >
               <span className="text-[13px] leading-tight">{day.weekday}</span>
               <span className="text-[13px] font-medium leading-tight">{day.monthDay}</span>
               <span className="mt-auto text-[13px] leading-tight">
-                {open ? `${day.slots.length} appt${day.slots.length > 1 ? "s" : ""}` : "No appts"}
+                {loading
+                  ? "…"
+                  : open
+                    ? `${day.slots.length} appt${day.slots.length > 1 ? "s" : ""}`
+                    : "No appts"}
               </span>
             </button>
           );
         })}
       </div>
+
+      {error && <p className="mt-3 text-[14px] text-muted">{error}</p>}
 
       <button
         type="button"
@@ -138,6 +166,23 @@ export default function BookingCard() {
       </button>
     </section>
   );
+}
+
+/** Skeleton cells so the grid doesn't jump while the first fetch is in flight. */
+function placeholderDays(startIso: string): DayAvailability[] {
+  const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  return Array.from({ length: WINDOW }, (_, index) => {
+    const iso = addDays(startIso, index);
+    const date = new Date(`${iso}T00:00:00Z`);
+    return {
+      iso,
+      weekday: WEEKDAYS[date.getUTCDay()],
+      monthDay: `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}`,
+      slots: [],
+    };
+  });
 }
 
 function ArrowButton({

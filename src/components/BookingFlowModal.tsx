@@ -1,16 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { practice } from "@/lib/practice";
-import { addDays, buildWindow, formatShort, type DaySlots } from "@/lib/availability";
-import { useBooking } from "./booking-context";
+import { addDays, formatShort, type DayAvailability } from "@/lib/availability";
+import { fetchAvailability, useBooking } from "./booking-context";
 import VisitReasonSelect from "./VisitReasonSelect";
 import { CheckIcon, CloseIcon, InfoIcon, PinIcon, ShieldSmall } from "./icons";
 
 const WINDOW = 14;
 
 type Step = "details" | "about" | "done";
+type Picked = { iso: string; slotId: string; time: string };
 
 export default function BookingFlowModal({
   initialIso,
@@ -19,18 +20,23 @@ export default function BookingFlowModal({
   initialIso: string | null;
   onClose: () => void;
 }) {
-  const { todayIso, reason, setReason, insurance, insuranceChosen, patientType, openInsurance } =
-    useBooking();
+  const {
+    todayIso,
+    reason,
+    setReason,
+    insurance,
+    insuranceChosen,
+    patientType,
+    openInsurance,
+    bumpVersion,
+  } = useBooking();
 
-  const days = useMemo(
-    () => buildWindow(todayIso, todayIso, patientType, reason, WINDOW),
-    [todayIso, patientType, reason],
-  );
-  const openDays = days.filter((day) => day.slots.length > 0);
-
+  const [days, setDays] = useState<DayAvailability[] | null>(null);
+  const [loadError, setLoadError] = useState("");
   const [step, setStep] = useState<Step>("details");
-  const [time, setTime] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Picked | null>(null);
   const [dayIso, setDayIso] = useState<string | null>(initialIso);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const onEsc = (event: KeyboardEvent) => {
@@ -40,17 +46,33 @@ export default function BookingFlowModal({
     return () => document.removeEventListener("keydown", onEsc);
   }, [onClose]);
 
-  // Changing the visit reason reshuffles availability, so the highlighted day is
-  // derived rather than stored — it falls back to the next day with openings.
-  const requested = dayIso ? days.find((day) => day.iso === dayIso) : undefined;
+  useEffect(() => {
+    let cancelled = false;
+    fetchAvailability(todayIso, WINDOW)
+      .then((result) => {
+        if (!cancelled) setDays(result);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDays([]);
+          setLoadError("Availability is unavailable right now. Please call the office.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [todayIso, reloadKey]);
+
+  const openDays = (days ?? []).filter((day) => day.slots.length > 0);
+  const requested = dayIso ? (days ?? []).find((day) => day.iso === dayIso) : undefined;
   const featured = requested?.slots.length ? requested : (openDays[0] ?? null);
   const rest = openDays.filter((day) => day.iso !== featured?.iso);
   const restStart = featured ? addDays(featured.iso, 1) : todayIso;
   const restEnd = addDays(todayIso, WINDOW - 1);
 
-  function chooseTime(iso: string, value: string) {
+  function chooseTime(iso: string, slotId: string, time: string) {
     setDayIso(iso);
-    setTime(value);
+    setPicked({ iso, slotId, time });
     setStep("about");
   }
 
@@ -71,7 +93,7 @@ export default function BookingFlowModal({
           <h2 className="text-[24px] font-bold tracking-tight">
             {step === "details" && "Book an appointment"}
             {step === "about" && "Confirm your details"}
-            {step === "done" && "Appointment requested"}
+            {step === "done" && "Appointment booked"}
           </h2>
           <button
             type="button"
@@ -113,15 +135,17 @@ export default function BookingFlowModal({
               <h3 className="mt-6 text-[19px] font-bold tracking-tight">Available appointments</h3>
               <p className="mt-0.5 text-[15px] text-muted">Click a time to book for free.</p>
 
-              {featured ? (
+              {days === null ? (
+                <p className="mt-4 text-[15px] text-muted">Loading availability…</p>
+              ) : featured ? (
                 <div className="mt-4">
                   <p className="text-[16px] font-semibold">{formatShort(featured.iso)}</p>
                   <SlotRow day={featured} onPick={chooseTime} />
                 </div>
               ) : (
                 <p className="mt-4 text-[15px] text-muted">
-                  No available appointments in the next two weeks. Call {practice.phone} and the
-                  office will find you a time.
+                  {loadError ||
+                    `No available appointments in the next two weeks. Call ${practice.phone} and the office will find you a time.`}
                 </p>
               )}
 
@@ -144,20 +168,28 @@ export default function BookingFlowModal({
             </>
           )}
 
-          {step === "about" && featured && time && (
+          {step === "about" && picked && (
             <AboutYouStep
-              iso={featured.iso}
-              time={time}
+              picked={picked}
               reason={reason}
+              patientType={patientType}
+              insurance={insurance}
               onBack={() => setStep("details")}
-              onSubmit={() => setStep("done")}
+              onBooked={() => {
+                bumpVersion();
+                setStep("done");
+              }}
+              onSlotGone={() => {
+                setReloadKey((key) => key + 1);
+                setPicked(null);
+                setStep("details");
+              }}
             />
           )}
 
-          {step === "done" && featured && time && (
+          {step === "done" && picked && (
             <DoneStep
-              iso={featured.iso}
-              time={time}
+              picked={picked}
               reason={reason}
               patientType={patientType}
               insurance={insurance ? `${insurance.carrier} · ${insurance.plan}` : "Paying for myself"}
@@ -174,19 +206,19 @@ function SlotRow({
   day,
   onPick,
 }: {
-  day: DaySlots;
-  onPick: (iso: string, time: string) => void;
+  day: DayAvailability;
+  onPick: (iso: string, slotId: string, time: string) => void;
 }) {
   return (
     <div className="mt-2 flex flex-wrap gap-2">
       {day.slots.map((slot) => (
         <button
-          key={slot}
+          key={slot.id}
           type="button"
-          onClick={() => onPick(day.iso, slot)}
+          onClick={() => onPick(day.iso, slot.id, slot.time)}
           className="focus-ring rounded-md border border-teal/25 bg-gold px-3.5 py-2 text-[15px] font-medium text-teal transition hover:border-teal/50 hover:bg-gold-deep"
         >
-          {slot}
+          {slot.time}
         </button>
       ))}
     </div>
@@ -215,21 +247,21 @@ function ProviderHeader() {
   );
 }
 
-function SummaryCard({ iso, time, reason }: { iso: string; time: string; reason: string }) {
+function SummaryCard({ picked, reason }: { picked: Picked; reason: string }) {
   return (
     <div className="flex gap-3 rounded-xl border border-line-strong p-4">
       <Image
         src="/logo.png"
         alt={practice.photoAlt}
-        width={78}
-        height={78}
+        width={52}
+        height={52}
         className="h-13 w-13 shrink-0 rounded-lg border border-line bg-white object-contain p-1"
       />
       <div className="text-[15px] leading-relaxed">
         <p className="text-[17px] font-bold tracking-tight">{practice.name}</p>
         <p className="text-ink-soft">{practice.specialty}</p>
         <p className="font-medium">
-          {formatShort(iso)} at {time.toUpperCase()} {practice.timezone}
+          {formatShort(picked.iso)} at {picked.time.toUpperCase()} {practice.timezone}
         </p>
         <p className="text-ink-soft">{practice.addressFull}</p>
         <p className="text-ink-soft">{reason}</p>
@@ -239,30 +271,77 @@ function SummaryCard({ iso, time, reason }: { iso: string; time: string; reason:
 }
 
 function AboutYouStep({
-  iso,
-  time,
+  picked,
   reason,
+  patientType,
+  insurance,
   onBack,
-  onSubmit,
+  onBooked,
+  onSlotGone,
 }: {
-  iso: string;
-  time: string;
+  picked: Picked;
   reason: string;
+  patientType: "new" | "existing";
+  insurance: { carrier: string; plan: string } | null;
   onBack: () => void;
-  onSubmit: () => void;
+  onBooked: () => void;
+  onSlotGone: () => void;
 }) {
   const [more, setMore] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    email: "",
+    firstName: "",
+    lastName: "",
+    dob: "",
+    sex: "",
+    genderIdentity: "",
+    pronouns: "",
+  });
+
   const field =
     "focus-ring w-full rounded-lg border border-line-strong bg-white px-3.5 py-3 text-[16px] placeholder:text-muted";
 
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slotId: picked.slotId,
+          reason,
+          patientType,
+          insurance,
+          patient: form,
+        }),
+      });
+      const data = await response.json();
+
+      if (response.status === 409) {
+        setError(data.error ?? "That time was just taken.");
+        setTimeout(onSlotGone, 1200);
+        return;
+      }
+      if (!response.ok) {
+        setError(data.error ?? "Could not save the booking");
+        return;
+      }
+      onBooked();
+    } catch {
+      setError("Could not reach the server. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit();
-      }}
-    >
-      <SummaryCard iso={iso} time={time} reason={reason} />
+    <form onSubmit={submit}>
+      <SummaryCard picked={picked} reason={reason} />
 
       <h3 className="mt-6 text-[28px] font-bold leading-tight tracking-tight">
         Tell us a bit about you
@@ -274,7 +353,13 @@ function AboutYouStep({
       <div className="mt-5 space-y-4">
         <label className="block">
           <span className="mb-1.5 block text-[15px] font-semibold">Email</span>
-          <input required type="email" className={field} />
+          <input
+            required
+            type="email"
+            value={form.email}
+            onChange={(event) => setForm({ ...form, email: event.target.value })}
+            className={field}
+          />
         </label>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -283,20 +368,37 @@ function AboutYouStep({
               Legal first name
               <InfoIcon className="h-4 w-4 text-muted" />
             </span>
-            <input required className={field} />
+            <input
+              required
+              value={form.firstName}
+              onChange={(event) => setForm({ ...form, firstName: event.target.value })}
+              className={field}
+            />
           </label>
           <label className="block">
             <span className="mb-1.5 flex items-center gap-1.5 text-[15px] font-semibold">
               Legal last name
               <InfoIcon className="h-4 w-4 text-muted" />
             </span>
-            <input required className={field} />
+            <input
+              required
+              value={form.lastName}
+              onChange={(event) => setForm({ ...form, lastName: event.target.value })}
+              className={field}
+            />
           </label>
         </div>
 
         <label className="block">
           <span className="mb-1.5 block text-[15px] font-semibold">Date of birth</span>
-          <input required placeholder="mm/dd/yyyy" inputMode="numeric" className={field} />
+          <input
+            required
+            placeholder="mm/dd/yyyy"
+            inputMode="numeric"
+            value={form.dob}
+            onChange={(event) => setForm({ ...form, dob: event.target.value })}
+            className={field}
+          />
         </label>
 
         <fieldset>
@@ -307,7 +409,15 @@ function AboutYouStep({
           <div className="space-y-2">
             {["Male", "Female"].map((option) => (
               <label key={option} className="flex items-center gap-2.5 text-[16px]">
-                <input required type="radio" name="sex" value={option} className="h-4 w-4 accent-ink" />
+                <input
+                  required
+                  type="radio"
+                  name="sex"
+                  value={option}
+                  checked={form.sex === option}
+                  onChange={(event) => setForm({ ...form, sex: event.target.value })}
+                  className="h-4 w-4 accent-wine"
+                />
                 {option}
               </label>
             ))}
@@ -328,22 +438,39 @@ function AboutYouStep({
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
               <label className="block">
                 <span className="mb-1.5 block text-[15px] font-semibold">Gender identity</span>
-                <input className={field} placeholder="e.g. Woman, Man, Non-binary" />
+                <input
+                  value={form.genderIdentity}
+                  onChange={(event) => setForm({ ...form, genderIdentity: event.target.value })}
+                  className={field}
+                  placeholder="e.g. Woman, Man, Non-binary"
+                />
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-[15px] font-semibold">Pronouns</span>
-                <input className={field} placeholder="e.g. she/her, they/them" />
+                <input
+                  value={form.pronouns}
+                  onChange={(event) => setForm({ ...form, pronouns: event.target.value })}
+                  className={field}
+                  placeholder="e.g. she/her, they/them"
+                />
               </label>
             </div>
           )}
         </div>
       </div>
 
+      {error && (
+        <p role="alert" className="mt-4 rounded-lg bg-wine-soft px-3 py-2 text-[15px] text-wine-deep">
+          {error}
+        </p>
+      )}
+
       <button
         type="submit"
-        className="focus-ring mt-6 w-full rounded-lg bg-wine px-4 py-3.5 text-[17px] font-semibold text-white transition hover:bg-wine-deep"
+        disabled={busy}
+        className="focus-ring mt-6 w-full rounded-lg bg-wine px-4 py-3.5 text-[17px] font-semibold text-white transition hover:bg-wine-deep disabled:opacity-60"
       >
-        Continue
+        {busy ? "Booking…" : "Continue"}
       </button>
       <button
         type="button"
@@ -357,15 +484,13 @@ function AboutYouStep({
 }
 
 function DoneStep({
-  iso,
-  time,
+  picked,
   reason,
   patientType,
   insurance,
   onClose,
 }: {
-  iso: string;
-  time: string;
+  picked: Picked;
   reason: string;
   patientType: string;
   insurance: string;
@@ -379,13 +504,15 @@ function DoneStep({
         </span>
         <h3 className="mt-4 text-[24px] font-bold tracking-tight">You&apos;re booked</h3>
         <p className="mt-1.5 max-w-sm text-[15px] text-ink-soft">
-          {practice.name} will call if anything about this visit needs to change. A confirmation
-          email is on its way.
+          {practice.name} has your appointment and will call if anything needs to change.
         </p>
       </div>
 
       <dl className="mt-5 space-y-2 rounded-xl bg-cream px-4 py-4 text-[15px]">
-        <Row label="When" value={`${formatShort(iso)} at ${time.toUpperCase()} ${practice.timezone}`} />
+        <Row
+          label="When"
+          value={`${formatShort(picked.iso)} at ${picked.time.toUpperCase()} ${practice.timezone}`}
+        />
         <Row label="Visit reason" value={reason} />
         <Row label="Patient" value={patientType === "new" ? "New patient" : "Existing patient"} />
         <Row label="Insurance" value={insurance} />
