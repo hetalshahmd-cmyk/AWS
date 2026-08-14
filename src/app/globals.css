@@ -17,18 +17,19 @@
   --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
     serif;
 
-  /* Booking page */
-  --color-cream: #fdfaef;
-  --color-cream-deep: #f7f2e2;
-  --color-ink: #12100c;
-  --color-ink-soft: #3d3a33;
-  --color-muted: #6f6a60;
-  --color-line: #e3ded1;
-  --color-line-strong: #cdc6b4;
-  --color-gold: #ffe15d;
-  --color-gold-deep: #f5c518;
-  --color-teal: #0a5c55;
-  --color-teal-soft: #e6f1ef;
+  /* Booking page — same wine + sage brand, tuned for a dense scheduling UI.
+     `gold` is the "has openings" accent; it reads as sage here. */
+  --color-cream: #fbf7f8;
+  --color-cream-deep: #f2edee;
+  --color-ink: #2c2026;
+  --color-ink-soft: #6c5e63;
+  --color-muted: #8b7c82;
+  --color-line: #ece4e7;
+  --color-line-strong: #dccbd2;
+  --color-gold: #e2eeeb;
+  --color-gold-deep: #cfe3de;
+  --color-teal: #4e7b73;
+  --color-teal-soft: #e8f1ee;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
@@ -69,6 +70,6 @@ body {
 }
 
 ::selection {
-  background: var(--color-gold);
-  color: var(--color-ink);
+  background: var(--color-wine-soft);
+  color: var(--color-wine-deep);
 }

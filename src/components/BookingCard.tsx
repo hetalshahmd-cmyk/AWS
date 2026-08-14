@@ -115,7 +115,7 @@ export default function BookingCard() {
               onClick={() => openBooking(day.iso)}
               className={`flex min-h-[86px] flex-col gap-1 rounded-md px-2 py-2.5 text-left transition ${
                 open
-                  ? "bg-gold text-ink hover:bg-gold-deep"
+                  ? "bg-gold font-medium text-teal hover:bg-gold-deep"
                   : "cursor-default bg-cream-deep text-muted"
               }`}
             >

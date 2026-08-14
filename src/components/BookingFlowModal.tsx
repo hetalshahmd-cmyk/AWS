@@ -184,7 +184,7 @@ function SlotRow({
           key={slot}
           type="button"
           onClick={() => onPick(day.iso, slot)}
-          className="focus-ring rounded-md bg-gold px-3.5 py-2 text-[15px] font-medium text-ink transition hover:bg-gold-deep"
+          className="focus-ring rounded-md border border-teal/25 bg-gold px-3.5 py-2 text-[15px] font-medium text-teal transition hover:border-teal/50 hover:bg-gold-deep"
         >
           {slot}
         </button>
@@ -341,7 +341,7 @@ function AboutYouStep({
 
       <button
         type="submit"
-        className="focus-ring mt-6 w-full rounded-lg bg-gold px-4 py-3.5 text-[17px] font-semibold text-ink transition hover:bg-gold-deep"
+        className="focus-ring mt-6 w-full rounded-lg bg-wine px-4 py-3.5 text-[17px] font-semibold text-white transition hover:bg-wine-deep"
       >
         Continue
       </button>
@@ -374,8 +374,8 @@ function DoneStep({
   return (
     <div>
       <div className="flex flex-col items-center py-2 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gold">
-          <CheckIcon className="h-8 w-8 text-ink" />
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-soft">
+          <CheckIcon className="h-8 w-8 text-teal" />
         </span>
         <h3 className="mt-4 text-[24px] font-bold tracking-tight">You&apos;re booked</h3>
         <p className="mt-1.5 max-w-sm text-[15px] text-ink-soft">
@@ -395,7 +395,7 @@ function DoneStep({
       <button
         type="button"
         onClick={onClose}
-        className="focus-ring mt-6 w-full rounded-lg bg-ink px-4 py-3.5 text-[17px] font-semibold text-white transition hover:bg-ink-soft"
+        className="focus-ring mt-6 w-full rounded-lg bg-wine px-4 py-3.5 text-[17px] font-semibold text-white transition hover:bg-wine-deep"
       >
         Done
       </button>

@@ -6,7 +6,7 @@ export function CalendarIcon({ className }: IconProps) {
       <rect x="3.5" y="7.5" width="25" height="21" rx="3" fill="#fff" stroke="currentColor" strokeWidth="2" />
       <path d="M3.5 13.5h25" stroke="currentColor" strokeWidth="2" />
       <path d="M10 4v6M22 4v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M11 20.5l3.2 3.2 6.3-6.4" stroke="#f5c518" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M11 20.5l3.2 3.2 6.3-6.4" stroke="#7c2c3e" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   );
 }
@@ -21,7 +21,7 @@ export function ShieldIcon({ className }: IconProps) {
         strokeWidth="2"
         strokeLinejoin="round"
       />
-      <path d="M16 10.5v9M11.5 15h9" stroke="#f5c518" strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M16 10.5v9M11.5 15h9" stroke="#7c2c3e" strokeWidth="2.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -30,7 +30,7 @@ export function ClockIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
       <circle cx="16" cy="16" r="12" fill="#fff" stroke="currentColor" strokeWidth="2" />
-      <path d="M16 9v7.4l4.8 3" stroke="#f5c518" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M16 9v7.4l4.8 3" stroke="#7c2c3e" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

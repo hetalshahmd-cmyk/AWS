@@ -38,7 +38,7 @@ export default function ProfilePanel() {
               onClick={() => setTab(item)}
               className={`focus-ring -mb-px border-b-2 pb-2.5 text-[16px] transition ${
                 active
-                  ? "border-ink font-semibold text-ink"
+                  ? "border-wine font-semibold text-wine"
                   : "border-transparent text-ink-soft hover:text-ink"
               }`}
             >
@@ -135,7 +135,7 @@ function Location() {
             href={mapsHref}
             target="_blank"
             rel="noreferrer"
-            className="focus-ring rounded-lg bg-ink px-4 py-2.5 text-[14px] font-semibold text-white transition hover:bg-ink-soft"
+            className="focus-ring rounded-lg bg-wine px-4 py-2.5 text-[14px] font-semibold text-white transition hover:bg-wine-deep"
           >
             Get directions
           </a>
@@ -187,8 +187,8 @@ function MapArt() {
       <g stroke="#fff" strokeWidth="4">
         <path d="M0 60h640M0 170h640M120 0v240M300 0v240M470 0v240" />
       </g>
-      <rect x="0" y="105" width="640" height="22" fill="#f6e6a8" />
-      <rect x="0" y="105" width="640" height="22" fill="none" stroke="#e8d489" strokeWidth="2" />
+      <rect x="0" y="105" width="640" height="22" fill="#f6e7eb" />
+      <rect x="0" y="105" width="640" height="22" fill="none" stroke="#e6d2d8" strokeWidth="2" />
       <g fill="#e3eae4">
         <rect x="150" y="80" width="110" height="70" rx="4" />
         <rect x="330" y="10" width="100" height="38" rx="4" />
@@ -202,12 +202,12 @@ function MapArt() {
         W Camelback Rd
       </text>
       <g transform="translate(300 116)">
-        <circle r="26" fill="#12100c" opacity="0.08" />
+        <circle r="26" fill="#7c2c3e" opacity="0.08" />
         <path
           d="M0-26c-8.8 0-16 7.2-16 16 0 11.4 16 26 16 26s16-14.6 16-26c0-8.8-7.2-16-16-16z"
-          fill="#12100c"
+          fill="#7c2c3e"
         />
-        <circle cy="-10" r="6" fill="#ffe15d" />
+        <circle cy="-10" r="6" fill="#e8f1ee" />
       </g>
     </svg>
   );
