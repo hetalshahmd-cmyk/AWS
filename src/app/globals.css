@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  /* Marketing site — wine + sage on white */
+  --color-wine: #7c2c3e;
+  --color-wine-deep: #5c1e2d;
+  --color-wine-soft: #f6e7eb;
+  --color-sage: #4e7b73;
+  --color-sage-2: #6e9e95;
+  --color-sage-soft: #e8f1ee;
+  --color-sage-ink: #33534c;
+  --color-plum: #2c2026;
+  --color-plum-soft: #6c5e63;
+  --color-mist: #ece4e7;
+  --color-shell: #f7f4f5;
+
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
+    serif;
+
+  /* Booking page */
+  --color-cream: #fdfaef;
+  --color-cream-deep: #f7f2e2;
+  --color-ink: #12100c;
+  --color-ink-soft: #3d3a33;
+  --color-muted: #6f6a60;
+  --color-line: #e3ded1;
+  --color-line-strong: #cdc6b4;
+  --color-gold: #ffe15d;
+  --color-gold-deep: #f5c518;
+  --color-teal: #0a5c55;
+  --color-teal-soft: #e6f1ef;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+
+  --radius-card: 14px;
+}
+
+html,
+body {
+  background: #ffffff;
+  color: var(--color-plum);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer utilities {
+  .link-underline {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+
+  .focus-ring {
+    outline: none;
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--color-teal);
+    outline-offset: 2px;
+  }
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-ink);
+}
