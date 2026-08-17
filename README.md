@@ -70,7 +70,7 @@ slots. `scripts/seed.mjs` also creates every index.
 | `/pricing` | Free test banner, **price cards read from MongoDB**, insurance list |
 | `/about` | The three providers |
 | `/contact` | Phoenix + Glendale offices, hours |
-| `/book` | Profile and the booking flow — reads real slots, writes real bookings |
+| `/book` | Profile and the booking flow — **requires an account**; signed-out visitors are sent to `/login?next=/book` |
 | `/register` | Name + email → emailed 6-digit code → password |
 | `/login` | Email + password |
 | `/my-bookings` | The signed-in patient's appointments, with cancel |
@@ -91,7 +91,7 @@ slots. `scripts/seed.mjs` also creates every index.
 | Method + path | Auth | Purpose |
 | --- | --- | --- |
 | `GET /api/availability?start=&days=` | public | Open slots per day |
-| `POST /api/bookings` | public | Create a booking (attaches the patient account when signed in) |
+| `POST /api/bookings` | patient | Create a booking — 401 without a session |
 | `POST /api/auth/otp` | public | Email a 6-digit code |
 | `PUT /api/auth/otp` | public | Check the code |
 | `POST /api/auth/register` | public | Create a patient account (needs a verified email) |
@@ -110,6 +110,9 @@ slots. `scripts/seed.mjs` also creates every index.
 
 ## How booking works
 
+0. Booking needs an account: **Book Now** sends signed-out visitors to the login
+   page, which returns them to `/book` once they're in. The API refuses too, so
+   it can't be bypassed.
 1. Admin adds slots in `/admin/slots` — patients can only book times that exist
    there.
 2. `/book` fetches `/api/availability`; days with open slots are highlighted and

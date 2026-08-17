@@ -52,6 +52,12 @@ export default function AuthForm() {
 
   return (
     <form onSubmit={onSubmit} className="mt-6 space-y-4">
+      {next === "/book" && (
+        <p className="rounded-lg bg-sage-soft px-3.5 py-2.5 text-[15px] text-sage-ink">
+          Log in to book your appointment — we&apos;ll take you straight back.
+        </p>
+      )}
+
       <div>
         <label className={LABEL} htmlFor="email">
           Email

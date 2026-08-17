@@ -33,13 +33,20 @@ export async function POST(request: Request) {
 
   const insurance = body.insurance as { carrier?: unknown; plan?: unknown } | null;
 
-  // Signed-in patients get the booking tied to their account for /my-bookings.
+  // Booking requires an account — the page redirects, and this stops anyone
+  // posting straight to the API.
   const session = await getUserSession();
+  if (!session) {
+    return NextResponse.json(
+      { error: "Log in to book an appointment", needsLogin: true },
+      { status: 401 },
+    );
+  }
 
   try {
     const booking = await createBooking({
       slotId,
-      userId: session?.id ?? null,
+      userId: session.id,
       reason: str(body.reason, 120) || "OB-GYN Consultation",
       patientType: body.patientType === "new" ? "new" : "existing",
       insurance:

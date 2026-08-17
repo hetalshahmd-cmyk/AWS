@@ -138,6 +138,12 @@ export default function RegisterForm() {
 
   return (
     <div className="mt-6">
+      {next === "/book" && (
+        <p className="mb-5 rounded-lg bg-sage-soft px-3.5 py-2.5 text-[15px] text-sage-ink">
+          Create your account to book — we&apos;ll take you straight back to the calendar.
+        </p>
+      )}
+
       <Steps step={step} />
 
       {step === "details" && (

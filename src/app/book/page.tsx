@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import BookingCard from "@/components/BookingCard";
 import ProfilePanel from "@/components/ProfilePanel";
 import { BookingProvider } from "@/components/booking-context";
+import { getUserSession } from "@/lib/auth";
 import { practice } from "@/lib/practice";
 import { toIso } from "@/lib/availability";
 
@@ -12,11 +14,13 @@ export const metadata: Metadata = {
   description: `Book an appointment for free with ${practice.name}, ${practice.specialty} at ${practice.addressLine}.`,
 };
 
-// The availability window starts "today", so re-render hourly instead of
-// freezing the calendar at build time.
-export const revalidate = 3600;
+// Booking needs an account, so this page is per-request anyway.
+export const dynamic = "force-dynamic";
 
-export default function BookPage() {
+export default async function BookPage() {
+  // Signed-out visitors go to the login page and come straight back here.
+  if (!(await getUserSession())) redirect("/login?next=%2Fbook");
+
   const todayIso = toIso(new Date());
 
   return (
