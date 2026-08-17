@@ -46,6 +46,33 @@ never disagree about a value.
 Admin credentials are **not** in the env — accounts live in the `admins`
 collection with scrypt-hashed passwords.
 
+## Deploying
+
+Set these in the host's environment (not a `.env` file):
+`MONGODB_URI`, `MONGODB_DB`, `SESSION_SECRET`, `SMTP_HOST`, `SMTP_PORT`,
+`SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`.
+
+Two things bite in production:
+
+- **Passwords with `$`.** `.env.local` needs `pass\$123` because Next expands
+  `$`; a hosting dashboard stores values **literally**, so paste the raw
+  `pass$123` there — the escaped copy is a different password and the mail
+  server answers `535 Authentication unsuccessful`. If in doubt use
+  `SMTP_PASS_B64` (base64 of the raw password), which has no escaping at all.
+  The app retries the un-escaped form and logs a warning, but fix the value.
+- **Atlas Network Access.** Serverless hosts have changing outbound IPs, so
+  `Server selection timed out … ReplicaSetNoPrimary` means the allowlist is
+  blocking them. Add `0.0.0.0/0` under Atlas → Network Access. Percent-encode
+  any special characters in the URI password (`@` = `%40`, `:` = `%3A`).
+
+Check a deployment's settings from your machine — real env vars win over
+`.env.local`:
+
+```bash
+npm run doctor
+MONGODB_URI="…" SMTP_USER="…" SMTP_PASS="…" npm run doctor
+```
+
 ## Seeding
 
 ```bash
@@ -177,6 +204,7 @@ locks that person out immediately.
 ```
 scripts/seed.mjs                   # admin account, plans, optional slots
 scripts/mail-check.mjs             # SMTP host prober + test send
+scripts/doctor.mjs                 # checks MongoDB + SMTP for any environment
 scripts/load-env.mjs               # shared env loading (matches Next)
 src/
   app/

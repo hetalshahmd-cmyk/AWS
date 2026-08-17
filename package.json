@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "node scripts/seed.mjs",
-    "mail:check": "node scripts/mail-check.mjs"
+    "mail:check": "node scripts/mail-check.mjs",
+    "doctor": "node scripts/doctor.mjs"
   },
   "dependencies": {
     "mongodb": "^7.5.0",

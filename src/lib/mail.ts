@@ -4,10 +4,34 @@ import { site } from "./site";
 export type SmtpCandidate = { host: string; port: number; secure: boolean };
 
 const user = process.env.SMTP_USER ?? "";
-const pass = process.env.SMTP_PASS ?? "";
 const from = process.env.SMTP_FROM || (user ? `${site.name} <${user}>` : "");
 
-export const mailConfigured = Boolean(user && pass);
+/**
+ * Passwords to try, in order.
+ *
+ * `.env.local` has to escape `$` as `\$` because Next expands env values, but
+ * hosting dashboards store values literally — so a password pasted from one
+ * into the other arrives with a stray backslash and the server answers 535.
+ * SMTP_PASS_B64 sidesteps escaping entirely; otherwise we try the value as
+ * given and, only if that is rejected, the un-escaped form.
+ */
+function passwords(): string[] {
+  const encoded = process.env.SMTP_PASS_B64?.trim();
+  if (encoded) {
+    try {
+      const decoded = Buffer.from(encoded, "base64").toString("utf8");
+      if (decoded) return [decoded];
+    } catch {
+      console.error("SMTP_PASS_B64 is not valid base64 — falling back to SMTP_PASS");
+    }
+  }
+
+  const raw = process.env.SMTP_PASS ?? "";
+  const unescaped = raw.replace(/\\(?=[$`"\\])/g, "");
+  return unescaped !== raw ? [raw, unescaped] : [raw];
+}
+
+export const mailConfigured = Boolean(user && passwords()[0]);
 
 /**
  * Hosts to try, best guess first. GoDaddy mailboxes are either legacy Workspace
@@ -41,7 +65,7 @@ export function smtpCandidates(): SmtpCandidate[] {
   ];
 }
 
-function build(candidate: SmtpCandidate): Transporter {
+function build(candidate: SmtpCandidate, pass: string): Transporter {
   return nodemailer.createTransport({
     ...candidate,
     auth: { user, pass },
@@ -62,23 +86,35 @@ async function resolveTransport(): Promise<{ transport: Transporter; candidate: 
   if (globalForMail._mailer) return globalForMail._mailer;
   if (!mailConfigured) throw new Error("SMTP_USER and SMTP_PASS are not set");
 
-  const candidates = smtpCandidates();
+  const secrets = passwords();
   const failures: string[] = [];
 
-  for (const candidate of candidates) {
-    const transport = build(candidate);
-    try {
-      await transport.verify();
-      console.log(`SMTP ready via ${candidate.host}:${candidate.port}`);
-      globalForMail._mailer = { transport, candidate };
-      return globalForMail._mailer;
-    } catch (error) {
-      transport.close();
-      failures.push(
-        `${candidate.host}:${candidate.port} — ${
-          error instanceof Error ? error.message : "failed"
-        }`,
-      );
+  for (const [index, secret] of secrets.entries()) {
+    for (const candidate of smtpCandidates()) {
+      const transport = build(candidate, secret);
+      try {
+        await transport.verify();
+        console.log(
+          `SMTP ready via ${candidate.host}:${candidate.port}` +
+            (index > 0 ? " (using the un-escaped password — see below)" : ""),
+        );
+        if (index > 0) {
+          console.warn(
+            "SMTP_PASS looks over-escaped: it contains a backslash that the mail " +
+              "server does not expect. Env dashboards store values literally, so " +
+              "store the raw password (or set SMTP_PASS_B64) to avoid the retry.",
+          );
+        }
+        globalForMail._mailer = { transport, candidate };
+        return globalForMail._mailer;
+      } catch (error) {
+        transport.close();
+        failures.push(
+          `${candidate.host}:${candidate.port}${index > 0 ? " (un-escaped password)" : ""} — ${
+            error instanceof Error ? error.message : "failed"
+          }`,
+        );
+      }
     }
   }
 
