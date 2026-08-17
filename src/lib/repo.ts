@@ -111,6 +111,108 @@ export async function authenticateUser(email: string, password: string): Promise
   return serializeUser(doc);
 }
 
+/** A row for the admin patient list: the account plus its booking counts. */
+export type UserRow = User & {
+  lastLoginAt: string | null;
+  bookingsTotal: number;
+  bookingsUpcoming: number;
+  bookingsCancelled: number;
+  lastBookingDate: string | null;
+};
+
+export async function listUserRows(): Promise<UserRow[]> {
+  const { users } = await collections();
+  const todayIso = toIso(new Date());
+
+  const rows = await users
+    .aggregate<UserRow & { _id: ObjectId }>([
+      {
+        // Guest bookings share only the email, so match on either key.
+        $lookup: {
+          from: "bookings",
+          let: { uid: "$_id", mail: "$email" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $or: [{ $eq: ["$userId", "$$uid"] }, { $eq: ["$patient.email", "$$mail"] }],
+                },
+              },
+            },
+            { $project: { status: 1, date: 1 } },
+          ],
+          as: "b",
+        },
+      },
+      {
+        $addFields: {
+          id: { $toString: "$_id" },
+          bookingsTotal: { $size: "$b" },
+          bookingsUpcoming: {
+            $size: {
+              $filter: {
+                input: "$b",
+                as: "x",
+                cond: {
+                  $and: [{ $eq: ["$$x.status", "confirmed"] }, { $gte: ["$$x.date", todayIso] }],
+                },
+              },
+            },
+          },
+          bookingsCancelled: {
+            $size: {
+              $filter: { input: "$b", as: "x", cond: { $eq: ["$$x.status", "cancelled"] } },
+            },
+          },
+          lastBookingDate: { $max: "$b.date" },
+        },
+      },
+      { $project: { b: 0, passwordHash: 0 } },
+      { $sort: { createdAt: -1 } },
+      { $limit: 500 },
+    ])
+    .toArray();
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : "",
+    lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt).toISOString() : null,
+    bookingsTotal: row.bookingsTotal,
+    bookingsUpcoming: row.bookingsUpcoming,
+    bookingsCancelled: row.bookingsCancelled,
+    lastBookingDate: row.lastBookingDate ?? null,
+  }));
+}
+
+export async function getUserDetail(
+  id: string,
+): Promise<{ user: UserRow; bookings: Booking[] } | null> {
+  const { users } = await collections();
+  if (!ObjectId.isValid(id)) return null;
+
+  const doc = await users.findOne({ _id: new ObjectId(id) });
+  if (!doc) return null;
+
+  const bookings = await listUserBookings(id, doc.email);
+  const todayIso = toIso(new Date());
+
+  return {
+    user: {
+      ...serializeUser(doc),
+      lastLoginAt: doc.lastLoginAt?.toISOString() ?? null,
+      bookingsTotal: bookings.length,
+      bookingsUpcoming: bookings.filter(
+        (booking) => booking.status === "confirmed" && booking.date >= todayIso,
+      ).length,
+      bookingsCancelled: bookings.filter((booking) => booking.status === "cancelled").length,
+      lastBookingDate: bookings[0]?.date ?? null,
+    },
+    bookings,
+  };
+}
+
 export async function getUserById(id: string): Promise<User | null> {
   const { users } = await collections();
   if (!ObjectId.isValid(id)) return null;
@@ -535,15 +637,27 @@ export type Stats = {
   slotsOpen: number;
   slotsTotal: number;
   plans: number;
+  usersTotal: number;
+  usersNew7d: number;
   recent: Booking[];
 };
 
 export async function getStats(): Promise<Stats> {
-  const { slots, bookings, plans } = await collections();
+  const { slots, bookings, plans, users } = await collections();
   const todayIso = toIso(new Date());
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [bookingsTotal, bookingsUpcoming, bookingsCancelled, slotsOpen, slotsTotal, planCount, recent] =
-    await Promise.all([
+  const [
+    bookingsTotal,
+    bookingsUpcoming,
+    bookingsCancelled,
+    slotsOpen,
+    slotsTotal,
+    planCount,
+    usersTotal,
+    usersNew7d,
+    recent,
+  ] = await Promise.all([
       bookings.countDocuments(),
       bookings.countDocuments({ status: "confirmed", date: { $gte: todayIso } }),
       bookings.countDocuments({ status: "cancelled" }),
@@ -553,9 +667,11 @@ export async function getStats(): Promise<Stats> {
         $expr: { $lt: ["$booked", "$capacity"] },
       }),
       slots.countDocuments({ date: { $gte: todayIso } }),
-      plans.countDocuments(),
-      bookings.find().sort({ createdAt: -1 }).limit(6).toArray(),
-    ]);
+    plans.countDocuments(),
+    users.countDocuments(),
+    users.countDocuments({ createdAt: { $gte: weekAgo } }),
+    bookings.find().sort({ createdAt: -1 }).limit(6).toArray(),
+  ]);
 
   return {
     bookingsTotal,
@@ -564,6 +680,8 @@ export async function getStats(): Promise<Stats> {
     slotsOpen,
     slotsTotal,
     plans: planCount,
+    usersTotal,
+    usersNew7d,
     recent: recent.map(serializeBooking),
   };
 }

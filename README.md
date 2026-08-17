@@ -79,8 +79,10 @@ slots. `scripts/seed.mjs` also creates every index.
 
 | Route | What you can do |
 | --- | --- |
-| `/admin` | Counts for upcoming/total/cancelled bookings, open slots, plans + latest bookings |
+| `/admin` | Registered patients, new this week, upcoming/total/cancelled bookings, open slots, plans + latest bookings |
 | `/admin/bookings` | Every booking, filter and search, cancel / restore / delete |
+| `/admin/users` | Registered patients — search, sort, booking counts per person |
+| `/admin/users/[id]` | One patient: profile, totals, next visit, and their bookings with the same actions |
 | `/admin/slots` | Bulk-add slots over a date range by weekday, with time presets and capacity; switch individual times off; delete unbooked ones |
 | `/admin/pricing` | Edit, reorder, add and delete the cards on `/pricing` |
 
@@ -101,6 +103,8 @@ slots. `scripts/seed.mjs` also creates every index.
 | `PATCH/DELETE /api/admin/bookings/[id]` | admin | Change status / delete |
 | `GET/POST /api/admin/slots` | admin | List a range / bulk create |
 | `PATCH/DELETE /api/admin/slots/[id]` | admin | Activate-deactivate / delete |
+| `GET /api/admin/users` | admin | Patients with booking counts |
+| `GET /api/admin/users/[id]` | admin | One patient and their bookings |
 | `GET/POST /api/admin/plans` | admin | List / create |
 | `PATCH/DELETE /api/admin/plans/[id]` | admin | Edit / delete |
 
@@ -187,6 +191,7 @@ src/
     BookingCard  BookingFlowModal  InsuranceModal  ProfilePanel  booking-context
   lib/
     db.ts  models.ts  repo.ts      # Mongo client, types, all data access
+    format.ts                      # date/initials helpers shared by server + client
     mail.ts  otp.ts                # nodemailer transport, emailed codes
     auth.ts  password.ts          # session cookie, scrypt hashing
     api-helpers.ts               # admin route wrapper

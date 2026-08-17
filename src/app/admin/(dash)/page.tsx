@@ -29,11 +29,13 @@ export default async function DashboardPage() {
   }
 
   const tiles = [
+    { label: "Registered patients", value: stats.usersTotal, href: "/admin/users" },
+    { label: "New patients (7 days)", value: stats.usersNew7d, href: "/admin/users" },
     { label: "Upcoming bookings", value: stats.bookingsUpcoming, href: "/admin/bookings" },
     { label: "Bookings all time", value: stats.bookingsTotal, href: "/admin/bookings" },
+    { label: "Cancelled", value: stats.bookingsCancelled, href: "/admin/bookings" },
     { label: "Open slots ahead", value: stats.slotsOpen, href: "/admin/slots" },
     { label: "Slots ahead (total)", value: stats.slotsTotal, href: "/admin/slots" },
-    { label: "Cancelled", value: stats.bookingsCancelled, href: "/admin/bookings" },
     { label: "Pricing plans", value: stats.plans, href: "/admin/pricing" },
   ];
 
