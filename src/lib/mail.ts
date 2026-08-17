@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import nodemailer, { type Transporter } from "nodemailer";
 import { site } from "./site";
 
@@ -32,6 +33,29 @@ function passwords(): string[] {
 }
 
 export const mailConfigured = Boolean(user && passwords()[0]);
+
+/**
+ * Describes the password the app will actually send, without revealing it, so a
+ * deployment can be compared against a known-good value. `535` looks identical
+ * whether the password is wrong by one space or completely different.
+ */
+export function passwordFingerprint() {
+  const raw = process.env.SMTP_PASS ?? "";
+  const effective = passwords()[0] ?? "";
+
+  return {
+    source: process.env.SMTP_PASS_B64 ? "SMTP_PASS_B64" : "SMTP_PASS",
+    length: effective.length,
+    sha256: effective
+      ? createHash("sha256").update(effective).digest("hex").slice(0, 12)
+      : "(empty)",
+    firstLast: effective ? `${effective[0]}…${effective[effective.length - 1]}` : "(empty)",
+    // The usual silent copy-paste damage.
+    looksEscaped: /\\[$`"\\]/.test(raw),
+    hasEdgeWhitespace: raw !== raw.trim(),
+    hasWrappingQuotes: /^["'].*["']$/.test(raw),
+  };
+}
 
 /**
  * Hosts to try, best guess first. GoDaddy mailboxes are either legacy Workspace

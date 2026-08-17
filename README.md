@@ -73,6 +73,20 @@ npm run doctor
 MONGODB_URI="…" SMTP_USER="…" SMTP_PASS="…" npm run doctor
 ```
 
+To check a *running* deployment, call its health endpoint (guarded by
+`HEALTH_KEY`, falling back to `SESSION_SECRET`, so it still answers when MongoDB
+is down):
+
+```
+/api/admin/health?key=<secret>          MongoDB + config + password fingerprint
+/api/admin/health?key=<secret>&smtp=1   also attempts a real SMTP login
+```
+
+It never returns the password — only `length`, a truncated SHA-256 and flags for
+stray quotes, edge whitespace and backslash escapes. Compare the fingerprint
+with a machine where mail works: **same fingerprint + failing login means the
+mail server is refusing that host, not a wrong password.**
+
 ## Seeding
 
 ```bash
