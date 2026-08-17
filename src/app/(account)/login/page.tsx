@@ -18,7 +18,7 @@ export default function LoginPage() {
         See your upcoming visits, and cancel or reschedule in a couple of clicks.
       </p>
       <Suspense fallback={null}>
-        <AuthForm mode="login" />
+        <AuthForm />
       </Suspense>
     </div>
   );

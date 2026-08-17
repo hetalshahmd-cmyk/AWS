@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createUserSession } from "@/lib/auth";
+import { clearCode, isEmailVerified } from "@/lib/otp";
 import { DuplicateUserError, registerUser } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -28,8 +29,18 @@ export async function POST(request: Request) {
   }
 
   try {
+    // The address must have passed the emailed code — the client can't skip it
+    // by posting straight to this route.
+    if (!(await isEmailVerified(email))) {
+      return NextResponse.json(
+        { error: "Verify your email with the code we sent first", needsOtp: true },
+        { status: 403 },
+      );
+    }
+
     const user = await registerUser({ name, email, password });
     await createUserSession(user);
+    await clearCode(email);
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
     if (error instanceof DuplicateUserError) {

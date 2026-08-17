@@ -4,32 +4,22 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "./session-context";
-
-/**
- * Where to land after signing in or registering. Never bounce back to an auth
- * page (that's what sent freshly registered users to /login), and never off-site.
- */
-function safeNext(raw: string | null): string {
-  if (!raw) return "/my-bookings";
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/my-bookings";
-  if (/^\/(login|register|admin)(\/|\?|$)/.test(raw)) return "/my-bookings";
-  return raw;
-}
+import { safeNext } from "./safe-next";
 
 const FIELD =
   "focus-ring w-full rounded-lg border border-mist bg-white px-3.5 py-3 text-[16px] placeholder:text-plum-soft/70";
 const LABEL = "mb-1.5 block text-[14px] font-semibold";
 
-export default function AuthForm({ mode }: { mode: "login" | "register" }) {
+/** Sign-in only — registration is the multi-step RegisterForm. */
+export default function AuthForm() {
   const router = useRouter();
   const params = useSearchParams();
   const { setUser } = useSession();
 
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const register = mode === "register";
   const next = safeNext(params.get("next"));
 
   async function onSubmit(event: React.FormEvent) {
@@ -38,12 +28,10 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
     setError("");
 
     try {
-      const response = await fetch(register ? "/api/auth/register" : "/api/auth/session", {
+      const response = await fetch("/api/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          register ? form : { email: form.email, password: form.password },
-        ),
+        body: JSON.stringify(form),
       });
       const data = await response.json();
 
@@ -64,23 +52,6 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
 
   return (
     <form onSubmit={onSubmit} className="mt-6 space-y-4">
-      {register && (
-        <div>
-          <label className={LABEL} htmlFor="name">
-            Full name
-          </label>
-          <input
-            id="name"
-            required
-            autoComplete="name"
-            value={form.name}
-            onChange={(event) => setForm({ ...form, name: event.target.value })}
-            className={FIELD}
-            placeholder="Jane Doe"
-          />
-        </div>
-      )}
-
       <div>
         <label className={LABEL} htmlFor="email">
           Email
@@ -105,14 +76,12 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
           id="password"
           type="password"
           required
-          minLength={register ? 8 : undefined}
-          autoComplete={register ? "new-password" : "current-password"}
+          autoComplete="current-password"
           value={form.password}
           onChange={(event) => setForm({ ...form, password: event.target.value })}
           className={FIELD}
           placeholder="••••••••"
         />
-        {register && <p className="mt-1.5 text-[13px] text-plum-soft">At least 8 characters.</p>}
       </div>
 
       {error && (
@@ -126,18 +95,16 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         disabled={busy}
         className="focus-ring w-full rounded-full bg-wine px-6 py-3 text-[16px] font-semibold text-white transition hover:bg-wine-deep disabled:opacity-60"
       >
-        {busy ? (register ? "Creating account…" : "Signing in…") : register ? "Create account" : "Log in"}
+        {busy ? "Signing in…" : "Log in"}
       </button>
 
       <p className="text-center text-[15px] text-plum-soft">
-        {register ? "Already have an account? " : "Don't have an account? "}
+        Don&apos;t have an account?{" "}
         <Link
-          href={`${register ? "/login" : "/register"}${
-            next === "/my-bookings" ? "" : `?next=${encodeURIComponent(next)}`
-          }`}
+          href={`/register${next === "/my-bookings" ? "" : `?next=${encodeURIComponent(next)}`}`}
           className="font-semibold text-wine link-underline"
         >
-          {register ? "Log in" : "Register"}
+          Register
         </Link>
       </p>
     </form>

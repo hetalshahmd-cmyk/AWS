@@ -38,6 +38,9 @@ export function ensureIndexes(): Promise<void> {
       db.collection("bookings").createIndex({ createdAt: -1 }),
       db.collection("bookings").createIndex({ date: 1, time: 1 }),
       db.collection("plans").createIndex({ order: 1 }),
+      db.collection("email_otps").createIndex({ email: 1 }, { unique: true }),
+      // Mongo sweeps expired codes an hour after they lapse.
+      db.collection("email_otps").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 3600 }),
     ]);
   })();
   return indexesReady;

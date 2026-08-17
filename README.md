@@ -20,7 +20,28 @@ npm run lint
 | --- | --- |
 | `MONGODB_URI` | Connection string. Local `mongodb://127.0.0.1:27017` or an Atlas SRV URI |
 | `MONGODB_DB` | Database name (default `arizona`) |
-| `SESSION_SECRET` | Signs the admin and patient session cookies. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `SESSION_SECRET` | Signs the session cookies and the OTP hashes. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `SMTP_HOST` `SMTP_PORT` `SMTP_SECURE` | Mail server. 465 = SSL (`SMTP_SECURE=true`), 587 = STARTTLS (`false`). Leave `SMTP_HOST` blank to auto-probe |
+| `SMTP_USER` `SMTP_PASS` `SMTP_FROM` | Mailbox login and the From header |
+
+Check the mail settings before relying on them:
+
+```bash
+npm run mail:check                           # find a host that logs in
+npm run mail:check -- --to you@example.com   # and send a test message
+```
+
+The practice mailbox is GoDaddy **Microsoft 365**, so it uses
+`smtp.office365.com:587` with STARTTLS — *not* `smtpout.secureserver.net`, which
+is GoDaddy's legacy Workspace host and answers `535 authentication rejected` for
+these credentials. With `SMTP_HOST` unset, the app probes both plus
+`mail.<domain>` / `smtp.<domain>` on first send and caches whichever logs in.
+
+**Careful with `$` in `.env.local`.** Next expands `$` in env values, so
+`SMTP_PASS=pass$123` silently arrives as `pass` — quoting doesn't help. Write it
+escaped: `SMTP_PASS=pass\$123`. The scripts load env through Next's own loader
+(`scripts/load-env.mjs`) instead of `node --env-file`, so a script and the app
+never disagree about a value.
 
 Admin credentials are **not** in the env — accounts live in the `admins`
 collection with scrypt-hashed passwords.
@@ -50,7 +71,8 @@ slots. `scripts/seed.mjs` also creates every index.
 | `/about` | The three providers |
 | `/contact` | Phoenix + Glendale offices, hours |
 | `/book` | Profile and the booking flow — reads real slots, writes real bookings |
-| `/register` `/login` | Patient accounts — name, email, password |
+| `/register` | Name + email → emailed 6-digit code → password |
+| `/login` | Email + password |
 | `/my-bookings` | The signed-in patient's appointments, with cancel |
 
 **Admin** (`/admin`, session-guarded — signed out visitors are redirected to `/admin/login`)
@@ -68,7 +90,9 @@ slots. `scripts/seed.mjs` also creates every index.
 | --- | --- | --- |
 | `GET /api/availability?start=&days=` | public | Open slots per day |
 | `POST /api/bookings` | public | Create a booking (attaches the patient account when signed in) |
-| `POST /api/auth/register` | public | Create a patient account |
+| `POST /api/auth/otp` | public | Email a 6-digit code |
+| `PUT /api/auth/otp` | public | Check the code |
+| `POST /api/auth/register` | public | Create a patient account (needs a verified email) |
 | `GET/POST/DELETE /api/auth/session` | public | Who am I / log in / log out |
 | `GET /api/my/bookings` | patient | That patient's bookings |
 | `PATCH /api/my/bookings/[id]` | patient | Cancel own booking |
@@ -107,6 +131,16 @@ Accounts live in `users` (`name`, `email`, `passwordHash`, `createdAt`,
 `lastLoginAt`) and use the same scrypt hashing as admins, with a separate
 `aws_user` cookie (30 days) so a patient session is never an admin session.
 
+**Registering takes three steps:** name + email → a 6-digit code emailed to that
+address → password. `/api/auth/register` refuses anything whose email hasn't
+passed the code, so the step can't be skipped by posting straight to the API.
+
+Codes live in `email_otps` as an HMAC (never the digits themselves), expire after
+10 minutes, allow 6 wrong tries and 6 sends, enforce a 45-second gap between
+sends, and are deleted once the account is created. Mongo TTL-sweeps stale rows.
+In development, if the mail server can't be reached the code comes back in the
+API response so signup is still testable — that only happens outside production.
+
 Bookings made while signed in store a `userId`. Bookings made as a guest are
 adopted on register or login when the email matches, so nothing is orphaned.
 `/my-bookings` splits upcoming from past/cancelled, and cancelling asks for
@@ -135,10 +169,13 @@ locks that person out immediately.
 
 ```
 scripts/seed.mjs                   # admin account, plans, optional slots
+scripts/mail-check.mjs             # SMTP host prober + test send
+scripts/load-env.mjs               # shared env loading (matches Next)
 src/
   app/
     layout.tsx  globals.css        # Tailwind v4 @theme tokens
     (site)/                        # marketing pages — header + footer
+    (account)/                     # login, register, my-bookings — header only
     book/page.tsx                  # booking page — no site chrome
     admin/login/                   # sign-in
     admin/(dash)/                  # guarded shell + dashboard/bookings/slots/pricing
@@ -150,6 +187,7 @@ src/
     BookingCard  BookingFlowModal  InsuranceModal  ProfilePanel  booking-context
   lib/
     db.ts  models.ts  repo.ts      # Mongo client, types, all data access
+    mail.ts  otp.ts                # nodemailer transport, emailed codes
     auth.ts  password.ts          # session cookie, scrypt hashing
     api-helpers.ts               # admin route wrapper
     site.ts  practice.ts  availability.ts

@@ -90,6 +90,11 @@ export async function registerUser(input: {
   return serializeUser(doc);
 }
 
+export async function emailTaken(email: string): Promise<boolean> {
+  const { users } = await collections();
+  return Boolean(await users.findOne({ email: email.trim().toLowerCase() }));
+}
+
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
   const { users } = await collections();
   const doc = await users.findOne({ email: email.trim().toLowerCase() });

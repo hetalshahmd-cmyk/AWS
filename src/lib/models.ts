@@ -55,6 +55,18 @@ export function serializeUser(doc: UserDoc): User {
   };
 }
 
+export type EmailOtpDoc = {
+  _id: ObjectId;
+  email: string;
+  /** HMAC of the 6-digit code — the code itself is never stored. */
+  codeHash: string;
+  expiresAt: Date;
+  attempts: number;
+  sends: number;
+  lastSentAt: Date;
+  verifiedAt: Date | null;
+};
+
 export type PlanDoc = {
   _id: ObjectId;
   order: number;

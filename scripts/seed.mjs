@@ -8,6 +8,7 @@
  * Re-running is safe: the admin's password is reset to the one given, plans are
  * only inserted when the collection is empty, and duplicate slots are skipped.
  */
+import "./load-env.mjs";
 import { randomBytes, scrypt } from "node:crypto";
 import { promisify } from "node:util";
 import { MongoClient, ObjectId } from "mongodb";

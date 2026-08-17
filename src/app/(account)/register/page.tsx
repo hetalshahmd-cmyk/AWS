@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import AuthForm from "@/components/auth/AuthForm";
+import RegisterForm from "@/components/auth/RegisterForm";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -15,11 +15,11 @@ export default function RegisterPage() {
         Create your account
       </h1>
       <p className="mt-2 text-plum-soft">
-        You&apos;ll be signed in straight away — no need to log in again. Bookings you already made
-        with this email are added automatically.
+        We verify your email with a code first. You&apos;ll be signed in straight away — bookings
+        you already made with this email are added automatically.
       </p>
       <Suspense fallback={null}>
-        <AuthForm mode="register" />
+        <RegisterForm />
       </Suspense>
     </div>
   );
