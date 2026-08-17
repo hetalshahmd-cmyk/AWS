@@ -213,6 +213,40 @@ export async function getUserDetail(
   };
 }
 
+/**
+ * Removes a patient account together with its bookings, releasing any seat that
+ * was still held. Returns what was removed so the UI can report it.
+ */
+export async function deleteUserAccount(
+  id: string,
+): Promise<{ email: string; removedBookings: number; freedSlots: number } | null> {
+  const { users, bookings, slots } = await collections();
+  if (!ObjectId.isValid(id)) return null;
+
+  const user = await users.findOne({ _id: new ObjectId(id) });
+  if (!user) return null;
+
+  const owned = await bookings
+    .find({ $or: [{ userId: user._id }, { "patient.email": user.email }] })
+    .toArray();
+
+  let freedSlots = 0;
+  for (const booking of owned) {
+    if (booking.status === "confirmed") {
+      await slots.updateOne({ _id: booking.slotId }, { $inc: { booked: -1 } });
+      freedSlots += 1;
+    }
+  }
+
+  await bookings.deleteMany({ _id: { $in: owned.map((booking) => booking._id) } });
+  await users.deleteOne({ _id: user._id });
+
+  const db = await getDb();
+  await db.collection("email_otps").deleteOne({ email: user.email });
+
+  return { email: user.email, removedBookings: owned.length, freedSlots };
+}
+
 export async function getUserById(id: string): Promise<User | null> {
   const { users } = await collections();
   if (!ObjectId.isValid(id)) return null;

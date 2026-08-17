@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import BookingsTable from "@/components/admin/BookingsTable";
+import DeleteUserButton from "@/components/admin/DeleteUserButton";
 import { initialsOf, shortDate } from "@/lib/format";
 import { formatShort } from "@/lib/availability";
 import { getUserDetail } from "@/lib/repo";
@@ -54,6 +55,10 @@ export default async function UserDetailPage({
           <Stat value={user.bookingsTotal} label="Bookings" />
           <Stat value={user.bookingsUpcoming} label="Upcoming" />
           <Stat value={user.bookingsCancelled} label="Cancelled" />
+        </div>
+
+        <div className="w-full sm:w-auto">
+          <DeleteUserButton id={user.id} name={user.name} bookings={user.bookingsTotal} />
         </div>
       </div>
 

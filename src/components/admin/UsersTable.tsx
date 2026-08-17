@@ -5,17 +5,52 @@ import { useMemo, useState } from "react";
 import type { UserRow } from "@/lib/repo";
 import { formatShort } from "@/lib/availability";
 import { initialsOf, shortDate } from "@/lib/format";
-import { FIELD } from "./ui";
+import { BTN_DANGER, BTN_QUIET, FIELD, Notice } from "./ui";
 
 type Sort = "newest" | "name" | "bookings" | "upcoming";
 
 export default function UsersTable({ initial }: { initial: UserRow[] }) {
+  const [users, setUsers] = useState(initial);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("newest");
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  async function remove(user: UserRow) {
+    setBusyId(user.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error ?? "Could not delete this patient");
+        return;
+      }
+
+      setUsers((prev) => prev.filter((row) => row.id !== user.id));
+      setConfirmId(null);
+      setNotice(
+        `Deleted ${user.name}` +
+          (data.removedBookings
+            ? ` — ${data.removedBookings} booking${data.removedBookings === 1 ? "" : "s"} removed` +
+              (data.freedSlots ? `, ${data.freedSlots} slot(s) freed.` : ".")
+            : "."),
+      );
+    } catch {
+      setError("Could not reach the server");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   const rows = useMemo(() => {
     const term = query.trim().toLowerCase();
-    const filtered = initial.filter(
+    const filtered = users.filter(
       (user) =>
         !term ||
         user.name.toLowerCase().includes(term) ||
@@ -37,15 +72,15 @@ export default function UsersTable({ initial }: { initial: UserRow[] }) {
         sorted.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
     }
     return sorted;
-  }, [initial, query, sort]);
+  }, [users, query, sort]);
 
-  const withUpcoming = initial.filter((user) => user.bookingsUpcoming > 0).length;
-  const neverBooked = initial.filter((user) => user.bookingsTotal === 0).length;
+  const withUpcoming = users.filter((user) => user.bookingsUpcoming > 0).length;
+  const neverBooked = users.filter((user) => user.bookingsTotal === 0).length;
 
   return (
     <div className="mt-6">
       <div className="grid gap-3 sm:grid-cols-3">
-        <Tile value={initial.length} label="Registered patients" />
+        <Tile value={users.length} label="Registered patients" />
         <Tile value={withUpcoming} label="With an upcoming visit" />
         <Tile value={neverBooked} label="Never booked" />
       </div>
@@ -81,9 +116,12 @@ export default function UsersTable({ initial }: { initial: UserRow[] }) {
           ))}
         </div>
         <span className="text-[14px] text-plum-soft">
-          {rows.length} of {initial.length}
+          {rows.length} of {users.length}
         </span>
       </div>
+
+      <Notice tone="error">{error}</Notice>
+      <Notice tone="ok">{notice}</Notice>
 
       <div className="mt-4 overflow-x-auto rounded-2xl border border-mist bg-white">
         <table className="w-full min-w-[760px] border-collapse text-left text-[14px]">
@@ -137,20 +175,57 @@ export default function UsersTable({ initial }: { initial: UserRow[] }) {
                 <td className="px-4 py-3 whitespace-nowrap text-plum-soft">
                   {user.lastBookingDate ? formatShort(user.lastBookingDate) : "—"}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <Link
-                    href={`/admin/users/${user.id}`}
-                    className="focus-ring inline-flex rounded-lg border border-line-strong bg-white px-3 py-2 text-[14px] font-semibold transition hover:bg-shell"
-                  >
-                    View
-                  </Link>
+                <td className="px-4 py-3">
+                  {confirmId === user.id ? (
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <span className="text-[13px] text-plum-soft">
+                        Delete{user.bookingsTotal > 0 ? ` + ${user.bookingsTotal} booking(s)` : ""}?
+                      </span>
+                      <button
+                        type="button"
+                        disabled={busyId === user.id}
+                        onClick={() => remove(user)}
+                        className={BTN_DANGER}
+                      >
+                        {busyId === user.id ? "Deleting…" : "Yes"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyId === user.id}
+                        onClick={() => setConfirmId(null)}
+                        className={BTN_QUIET}
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex justify-end gap-2">
+                      <Link
+                        href={`/admin/users/${user.id}`}
+                        className="focus-ring inline-flex rounded-lg border border-line-strong bg-white px-3 py-2 text-[14px] font-semibold transition hover:bg-shell"
+                      >
+                        View
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirmId(user.id);
+                          setError("");
+                          setNotice("");
+                        }}
+                        className={BTN_DANGER}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-plum-soft">
-                  {initial.length === 0
+                  {users.length === 0
                     ? "No one has registered an account yet."
                     : `No patient matches “${query}”.`}
                 </td>
