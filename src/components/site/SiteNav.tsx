@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { navLinks, site } from "@/lib/site";
 import Ico from "./Ico";
+import UserMenu from "./UserMenu";
 import { BookButton } from "./ui";
 
 export default function SiteNav() {
@@ -66,6 +67,7 @@ export default function SiteNav() {
               {site.phone}
             </a>
             <BookButton size="sm" />
+            <UserMenu />
             <button
               type="button"
               onClick={() => setOpen((prev) => !prev)}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getUserSession } from "@/lib/auth";
 import { createBooking, SlotUnavailableError } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +33,13 @@ export async function POST(request: Request) {
 
   const insurance = body.insurance as { carrier?: unknown; plan?: unknown } | null;
 
+  // Signed-in patients get the booking tied to their account for /my-bookings.
+  const session = await getUserSession();
+
   try {
     const booking = await createBooking({
       slotId,
+      userId: session?.id ?? null,
       reason: str(body.reason, 120) || "OB-GYN Consultation",
       patientType: body.patientType === "new" ? "new" : "existing",
       insurance:

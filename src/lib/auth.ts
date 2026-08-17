@@ -1,10 +1,12 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { getAdminById } from "./repo";
-import type { Admin } from "./models";
+import { getAdminById, getUserById } from "./repo";
+import type { Admin, User } from "./models";
 
 const COOKIE = "aws_admin";
+const USER_COOKIE = "aws_user";
 const MAX_AGE = 60 * 60 * 8; // 8 hours
+const USER_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 function secret(): string {
   const value = process.env.SESSION_SECRET;
@@ -89,4 +91,63 @@ export class UnauthorizedError extends Error {
     super("Not signed in");
     this.name = "UnauthorizedError";
   }
+}
+
+/* ------------------------------------------------- patient (site) session -- */
+
+export type UserSession = { id: string; email: string };
+
+export async function createUserSession(user: Pick<User, "id" | "email">): Promise<void> {
+  const expires = Date.now() + USER_MAX_AGE * 1000;
+  const payload = Buffer.from(
+    JSON.stringify({ id: user.id, email: user.email, expires }),
+  ).toString("base64url");
+
+  const jar = await cookies();
+  jar.set(USER_COOKIE, `${payload}.${sign(payload)}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: USER_MAX_AGE,
+  });
+}
+
+export async function destroyUserSession(): Promise<void> {
+  const jar = await cookies();
+  jar.delete(USER_COOKIE);
+}
+
+export async function getUserSession(): Promise<UserSession | null> {
+  const jar = await cookies();
+  const raw = jar.get(USER_COOKIE)?.value;
+  if (!raw) return null;
+
+  const [payload, signature] = raw.split(".");
+  if (!payload || !signature) return null;
+  if (!safeEqual(sign(payload), signature)) return null;
+
+  try {
+    const { id, email, expires } = JSON.parse(
+      Buffer.from(payload, "base64url").toString(),
+    ) as { id?: string; email?: string; expires?: number };
+
+    if (!id || !email || !expires || expires < Date.now()) return null;
+    return { id, email };
+  } catch {
+    return null;
+  }
+}
+
+/** Confirms the account still exists — used where the profile is displayed. */
+export async function getCurrentUser(): Promise<User | null> {
+  const session = await getUserSession();
+  if (!session) return null;
+  return getUserById(session.id);
+}
+
+export async function requireUserSession(): Promise<UserSession> {
+  const session = await getUserSession();
+  if (!session) throw new UnauthorizedError();
+  return session;
 }

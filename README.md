@@ -20,7 +20,7 @@ npm run lint
 | --- | --- |
 | `MONGODB_URI` | Connection string. Local `mongodb://127.0.0.1:27017` or an Atlas SRV URI |
 | `MONGODB_DB` | Database name (default `arizona`) |
-| `SESSION_SECRET` | Signs the admin session cookie. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `SESSION_SECRET` | Signs the admin and patient session cookies. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 
 Admin credentials are **not** in the env — accounts live in the `admins`
 collection with scrypt-hashed passwords.
@@ -50,6 +50,8 @@ slots. `scripts/seed.mjs` also creates every index.
 | `/about` | The three providers |
 | `/contact` | Phoenix + Glendale offices, hours |
 | `/book` | Profile and the booking flow — reads real slots, writes real bookings |
+| `/register` `/login` | Patient accounts — name, email, password |
+| `/my-bookings` | The signed-in patient's appointments, with cancel |
 
 **Admin** (`/admin`, session-guarded — signed out visitors are redirected to `/admin/login`)
 
@@ -65,7 +67,11 @@ slots. `scripts/seed.mjs` also creates every index.
 | Method + path | Auth | Purpose |
 | --- | --- | --- |
 | `GET /api/availability?start=&days=` | public | Open slots per day |
-| `POST /api/bookings` | public | Create a booking |
+| `POST /api/bookings` | public | Create a booking (attaches the patient account when signed in) |
+| `POST /api/auth/register` | public | Create a patient account |
+| `GET/POST/DELETE /api/auth/session` | public | Who am I / log in / log out |
+| `GET /api/my/bookings` | patient | That patient's bookings |
+| `PATCH /api/my/bookings/[id]` | patient | Cancel own booking |
 | `GET/POST/DELETE /api/admin/session` | — | Sign in / who am I / sign out |
 | `GET /api/admin/bookings` | admin | List (optional `?status=`) |
 | `PATCH/DELETE /api/admin/bookings/[id]` | admin | Change status / delete |
@@ -88,9 +94,24 @@ slots. `scripts/seed.mjs` also creates every index.
 5. The booking appears in `/admin/bookings`. Cancelling frees the seat; restoring
    takes it back.
 
-Collections: `admins`, `plans`, `slots` (`date`, `time`, `minutes`, `capacity`,
+Collections: `admins`, `users`, `plans`, `slots` (`date`, `time`, `minutes`, `capacity`,
 `booked`, `active`), `bookings` (patient, reason, insurance, status, slot
 reference).
+
+## Patient accounts
+
+The header shows **Log in** / **Register** when signed out, and an avatar button
+when signed in — its dropdown holds **My bookings** and **Log out**.
+
+Accounts live in `users` (`name`, `email`, `passwordHash`, `createdAt`,
+`lastLoginAt`) and use the same scrypt hashing as admins, with a separate
+`aws_user` cookie (30 days) so a patient session is never an admin session.
+
+Bookings made while signed in store a `userId`. Bookings made as a guest are
+adopted on register or login when the email matches, so nothing is orphaned.
+`/my-bookings` splits upcoming from past/cancelled, and cancelling asks for
+confirmation, frees the slot, and cannot be undone by the patient — only the
+office can restore it from `/admin/bookings`.
 
 ## Admin authentication
 
@@ -113,6 +134,7 @@ locks that person out immediately.
 ## Structure
 
 ```
+scripts/seed.mjs                   # admin account, plans, optional slots
 src/
   app/
     layout.tsx  globals.css        # Tailwind v4 @theme tokens
@@ -122,12 +144,14 @@ src/
     admin/(dash)/                  # guarded shell + dashboard/bookings/slots/pricing
     api/                           # availability, bookings, admin CRUD
   components/
-    site/                          # SiteNav, SiteFooter, Ico, ui, hero, insurance, FAQ
+    site/                          # SiteNav, UserMenu, SiteFooter, Ico, ui, hero, FAQ
+    auth/                          # session context, login/register form, MyBookings
     admin/                         # AdminNav, tables, editors, shared inputs
     BookingCard  BookingFlowModal  InsuranceModal  ProfilePanel  booking-context
   lib/
     db.ts  models.ts  repo.ts      # Mongo client, types, all data access
-    auth.ts  api-helpers.ts        # session cookie, admin route wrapper
+    auth.ts  password.ts          # session cookie, scrypt hashing
+    api-helpers.ts               # admin route wrapper
     site.ts  practice.ts  availability.ts
 ```
 

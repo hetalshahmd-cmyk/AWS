@@ -97,6 +97,9 @@ try {
 
   // Indexes
   await db.collection("admins").createIndex({ email: 1 }, { unique: true });
+  await db.collection("users").createIndex({ email: 1 }, { unique: true });
+  await db.collection("bookings").createIndex({ userId: 1, date: -1 });
+  await db.collection("bookings").createIndex({ "patient.email": 1 });
   await db.collection("slots").createIndex({ date: 1, time: 1 }, { unique: true });
   await db.collection("slots").createIndex({ date: 1, active: 1 });
   await db.collection("bookings").createIndex({ createdAt: -1 });

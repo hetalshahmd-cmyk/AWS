@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { practice } from "@/lib/practice";
 import { addDays, formatShort, type DayAvailability } from "@/lib/availability";
+import { useSession } from "./auth/session-context";
 import { fetchAvailability, useBooking } from "./booking-context";
 import VisitReasonSelect from "./VisitReasonSelect";
 import { CheckIcon, CloseIcon, InfoIcon, PinIcon, ShieldSmall } from "./icons";
@@ -287,17 +288,22 @@ function AboutYouStep({
   onBooked: () => void;
   onSlotGone: () => void;
 }) {
+  const { user } = useSession();
   const [more, setMore] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({
-    email: "",
-    firstName: "",
-    lastName: "",
-    dob: "",
-    sex: "",
-    genderIdentity: "",
-    pronouns: "",
+  // Signed-in patients get their details filled in — still editable.
+  const [form, setForm] = useState(() => {
+    const [firstName = "", ...restOfName] = (user?.name ?? "").trim().split(/\s+/);
+    return {
+      email: user?.email ?? "",
+      firstName,
+      lastName: restOfName.join(" "),
+      dob: "",
+      sex: "",
+      genderIdentity: "",
+      pronouns: "",
+    };
   });
 
   const field =
@@ -519,10 +525,16 @@ function DoneStep({
         <Row label="Where" value={practice.addressFull} />
       </dl>
 
+      <a
+        href="/my-bookings"
+        className="focus-ring mt-6 block w-full rounded-lg bg-wine px-4 py-3.5 text-center text-[17px] font-semibold text-white transition hover:bg-wine-deep"
+      >
+        See my bookings
+      </a>
       <button
         type="button"
         onClick={onClose}
-        className="focus-ring mt-6 w-full rounded-lg bg-wine px-4 py-3.5 text-[17px] font-semibold text-white transition hover:bg-wine-deep"
+        className="focus-ring mt-3 w-full text-[15px] font-medium link-underline"
       >
         Done
       </button>

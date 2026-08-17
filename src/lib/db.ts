@@ -30,6 +30,9 @@ export function ensureIndexes(): Promise<void> {
     const db = await getDb();
     await Promise.all([
       db.collection("admins").createIndex({ email: 1 }, { unique: true }),
+      db.collection("users").createIndex({ email: 1 }, { unique: true }),
+      db.collection("bookings").createIndex({ userId: 1, date: -1 }),
+      db.collection("bookings").createIndex({ "patient.email": 1 }),
       db.collection("slots").createIndex({ date: 1, time: 1 }, { unique: true }),
       db.collection("slots").createIndex({ date: 1, active: 1 }),
       db.collection("bookings").createIndex({ createdAt: -1 }),

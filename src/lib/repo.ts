@@ -14,10 +14,13 @@ import {
   type Patient,
   type Plan,
   type PlanDoc,
+  serializeUser,
   type Admin,
   type AdminDoc,
   type Slot,
   type SlotDoc,
+  type User,
+  type UserDoc,
 } from "./models";
 import { addDays, fromIso, toIso } from "./availability";
 import { prices } from "./site";
@@ -40,10 +43,120 @@ async function collections() {
   const db = await getDb();
   return {
     admins: db.collection<AdminDoc>("admins"),
+    users: db.collection<UserDoc>("users"),
     plans: db.collection<PlanDoc>("plans"),
     slots: db.collection<SlotDoc>("slots"),
     bookings: db.collection<BookingDoc>("bookings"),
   };
+}
+
+/* ---------------------------------------------------------------- users -- */
+
+export class DuplicateUserError extends Error {
+  constructor() {
+    super("An account with that email already exists");
+    this.name = "DuplicateUserError";
+  }
+}
+
+export async function registerUser(input: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<User> {
+  const { users } = await collections();
+  const email = input.email.trim().toLowerCase();
+
+  if (await users.findOne({ email })) throw new DuplicateUserError();
+
+  const doc: UserDoc = {
+    _id: new ObjectId(),
+    name: input.name.trim(),
+    email,
+    passwordHash: await hashPassword(input.password),
+    createdAt: new Date(),
+    lastLoginAt: new Date(),
+  };
+
+  try {
+    await users.insertOne(doc);
+  } catch (error) {
+    if ((error as { code?: number }).code === 11000) throw new DuplicateUserError();
+    throw error;
+  }
+
+  // Adopt any bookings this person made as a guest with the same email.
+  await linkGuestBookings(doc._id, email);
+  return serializeUser(doc);
+}
+
+export async function authenticateUser(email: string, password: string): Promise<User | null> {
+  const { users } = await collections();
+  const doc = await users.findOne({ email: email.trim().toLowerCase() });
+
+  // Hash anyway when the email is unknown, so both failures take the same time.
+  if (!doc) {
+    await verifyPassword(password, "scrypt$16384$8$1$AAAAAAAAAAAAAAAAAAAAAA$AAAA");
+    return null;
+  }
+  if (!(await verifyPassword(password, doc.passwordHash))) return null;
+
+  await users.updateOne({ _id: doc._id }, { $set: { lastLoginAt: new Date() } });
+  await linkGuestBookings(doc._id, doc.email);
+  return serializeUser(doc);
+}
+
+export async function getUserById(id: string): Promise<User | null> {
+  const { users } = await collections();
+  if (!ObjectId.isValid(id)) return null;
+  const doc = await users.findOne({ _id: new ObjectId(id) });
+  return doc ? serializeUser(doc) : null;
+}
+
+/** Attaches bookings made while signed out to the account with that email. */
+async function linkGuestBookings(userId: ObjectId, email: string): Promise<void> {
+  const { bookings } = await collections();
+  await bookings.updateMany(
+    { "patient.email": email, $or: [{ userId: null }, { userId: { $exists: false } }] },
+    { $set: { userId } },
+  );
+}
+
+export async function listUserBookings(userId: string, email: string): Promise<Booking[]> {
+  const { bookings } = await collections();
+  const docs = await bookings
+    .find({ $or: [{ userId: new ObjectId(userId) }, { "patient.email": email }] })
+    .sort({ date: -1, time: -1 })
+    .limit(200)
+    .toArray();
+  return docs.map(serializeBooking);
+}
+
+/** Cancels a booking only if it belongs to this user. Frees the slot. */
+export async function cancelUserBooking(
+  bookingId: string,
+  userId: string,
+  email: string,
+): Promise<Booking | null> {
+  const { slots, bookings } = await collections();
+  if (!ObjectId.isValid(bookingId)) return null;
+
+  const doc = await bookings.findOne({
+    _id: new ObjectId(bookingId),
+    $or: [{ userId: new ObjectId(userId) }, { "patient.email": email }],
+  });
+  if (!doc) return null;
+  if (doc.status === "cancelled") return serializeBooking(doc);
+
+  const updated = await bookings.findOneAndUpdate(
+    { _id: doc._id },
+    { $set: { status: "cancelled" } },
+    { returnDocument: "after" },
+  );
+  if (!updated) return null;
+
+  await slots.updateOne({ _id: doc.slotId }, { $inc: { booked: -1 } });
+  return serializeBooking(updated);
 }
 
 /* --------------------------------------------------------------- admins -- */
@@ -308,6 +421,7 @@ export async function getAvailability(startIso: string, days: number): Promise<D
 
 export type NewBooking = {
   slotId: string;
+  userId?: string | null;
   reason: string;
   patientType: "new" | "existing";
   insurance: { carrier: string; plan: string } | null;
@@ -341,6 +455,7 @@ export async function createBooking(input: NewBooking): Promise<Booking> {
   const doc: BookingDoc = {
     _id: new ObjectId(),
     slotId: slot._id,
+    userId: input.userId && ObjectId.isValid(input.userId) ? new ObjectId(input.userId) : null,
     date: slot.date,
     time: slot.time,
     reason: input.reason,

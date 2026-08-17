@@ -29,6 +29,32 @@ export function serializeAdmin(doc: AdminDoc): Admin {
   };
 }
 
+export type UserDoc = {
+  _id: ObjectId;
+  name: string;
+  email: string;
+  passwordHash: string;
+  createdAt: Date;
+  lastLoginAt: Date | null;
+};
+
+/** Never carries passwordHash — this is what leaves the server. */
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+};
+
+export function serializeUser(doc: UserDoc): User {
+  return {
+    id: doc._id.toString(),
+    name: doc.name,
+    email: doc.email,
+    createdAt: doc.createdAt?.toISOString() ?? "",
+  };
+}
+
 export type PlanDoc = {
   _id: ObjectId;
   order: number;
@@ -71,6 +97,8 @@ export type Patient = {
 export type BookingDoc = {
   _id: ObjectId;
   slotId: ObjectId;
+  /** Set when the patient was signed in; null for guest bookings. */
+  userId?: ObjectId | null;
   date: string;
   time: string;
   reason: string;
@@ -81,9 +109,10 @@ export type BookingDoc = {
   createdAt: Date;
 };
 
-export type Booking = Omit<BookingDoc, "_id" | "slotId" | "createdAt"> & {
+export type Booking = Omit<BookingDoc, "_id" | "slotId" | "userId" | "createdAt"> & {
   id: string;
   slotId: string;
+  userId: string | null;
   createdAt: string;
 };
 
@@ -116,10 +145,11 @@ export function serializeSlot(doc: SlotDoc): Slot {
 }
 
 export function serializeBooking(doc: BookingDoc): Booking {
-  const { _id, slotId, createdAt, ...rest } = doc;
+  const { _id, slotId, userId, createdAt, ...rest } = doc;
   return {
     id: _id.toString(),
     slotId: slotId?.toString() ?? "",
+    userId: userId?.toString() ?? null,
     createdAt: createdAt?.toISOString() ?? "",
     ...rest,
   };
