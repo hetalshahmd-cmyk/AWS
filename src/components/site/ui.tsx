@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PhoneLink from "@/components/analytics/PhoneLink";
 import Ico, { type IcoName } from "./Ico";
 
 const BASE =
@@ -39,7 +40,17 @@ export function Button({
   );
   const classes = `${BASE} ${SIZES[size]} ${VARIANTS[variant]} ${className}`;
 
-  if (external || href.startsWith("tel:") || href.startsWith("http")) {
+  // Every call CTA on the site routes through here, which makes this the one
+  // place worth instrumenting for phone intent.
+  if (href.startsWith("tel:")) {
+    return (
+      <PhoneLink href={href} className={classes}>
+        {content}
+      </PhoneLink>
+    );
+  }
+
+  if (external || href.startsWith("http")) {
     return (
       <a
         href={href}

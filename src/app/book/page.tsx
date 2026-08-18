@@ -17,9 +17,35 @@ export const metadata: Metadata = {
 // Booking needs an account, so this page is per-request anyway.
 export const dynamic = "force-dynamic";
 
-export default async function BookPage() {
-  // Signed-out visitors go to the login page and come straight back here.
-  if (!(await getUserSession())) redirect("/login?next=%2Fbook");
+type Search = Record<string, string | string[] | undefined>;
+
+/**
+ * Rebuilds the incoming query string so the sign-in detour returns the visitor
+ * to the exact URL they arrived on. Ad traffic lands here carrying `fbclid` and
+ * `utm_*`; dropping them here loses the click for good, because the pixel only
+ * ever sees the page it is finally rendered on.
+ */
+function queryOf(search: Search): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(search)) {
+    const first = Array.isArray(value) ? value[0] : value;
+    if (first) params.set(key, first);
+  }
+  return params.toString();
+}
+
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams: Promise<Search>;
+}) {
+  // Signed-out visitors go to the login page and come straight back here —
+  // query string intact, so the ad click survives the round trip.
+  if (!(await getUserSession())) {
+    const query = queryOf(await searchParams);
+    const back = query ? `/book?${query}` : "/book";
+    redirect(`/login?next=${encodeURIComponent(back)}`);
+  }
 
   const todayIso = toIso(new Date());
 

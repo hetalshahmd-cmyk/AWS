@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSession } from "./session-context";
-import { safeNext } from "./safe-next";
 
 const FIELD =
   "focus-ring w-full rounded-lg border border-mist bg-white px-3.5 py-3 text-[16px] placeholder:text-plum-soft/70";
@@ -14,11 +13,14 @@ const BTN =
 
 type Step = "details" | "code" | "password";
 
-export default function RegisterForm() {
+/**
+ * `next` arrives as a prop, already sanitised on the server — reading it with
+ * useSearchParams here would opt the route out of server rendering and leave
+ * paid traffic staring at an empty page until JavaScript loads.
+ */
+export default function RegisterForm({ next }: { next: string }) {
   const router = useRouter();
-  const params = useSearchParams();
   const { setUser } = useSession();
-  const next = safeNext(params.get("next"));
 
   const [step, setStep] = useState<Step>("details");
   const [name, setName] = useState("");

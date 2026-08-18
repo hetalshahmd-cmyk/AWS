@@ -5,6 +5,7 @@ import { Band, BookButton, SectionHead } from "@/components/site/ui";
 import { site } from "@/lib/site";
 import { getPlans } from "@/lib/repo";
 import type { Plan } from "@/lib/models";
+import PhoneLink from "@/components/analytics/PhoneLink";
 
 export const metadata: Metadata = {
   title: `Pricing — ${site.name}`,
@@ -80,9 +81,9 @@ export default async function PricingPage() {
           </span>
           <span>
             Not sure what applies to you?{" "}
-            <a href={site.phoneHref} className="font-semibold text-wine link-underline">
+            <PhoneLink href={site.phoneHref} className="font-semibold text-wine link-underline">
               Call us
-            </a>{" "}
+            </PhoneLink>{" "}
             and we&apos;ll walk you through it.
           </span>
         </div>

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { site } from "@/lib/site";
+import PhoneLink from "@/components/analytics/PhoneLink";
 import { BookButton, Button } from "./ui";
 
 export default function SiteFooter() {
@@ -61,12 +62,12 @@ export default function SiteFooter() {
               <h3 className="mb-2.5 font-display text-[1.05rem] font-semibold text-plum">
                 Get in touch
               </h3>
-              <a
+              <PhoneLink
                 href={site.phoneHref}
                 className="focus-ring block py-1 text-[0.94rem] transition hover:text-wine"
               >
                 {site.phone}
-              </a>
+              </PhoneLink>
               <Link
                 href="/contact"
                 className="focus-ring block py-1 text-[0.94rem] transition hover:text-wine"
@@ -90,7 +91,7 @@ export default function SiteFooter() {
 
           <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-mist pt-5 text-[0.85rem]">
             <span>© {new Date().getFullYear()} {site.name}</span>
-            <Link href="/contact" className="focus-ring transition hover:text-wine">
+            <Link href="/privacy" className="focus-ring transition hover:text-wine">
               Privacy Policy
             </Link>
           </div>

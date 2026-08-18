@@ -1,6 +1,7 @@
 import { insurancePills, insurancePlans, site } from "@/lib/site";
 import Ico from "./Ico";
 import { SectionHead } from "./ui";
+import PhoneLink from "@/components/analytics/PhoneLink";
 
 export default function InsuranceSection({ center = false }: { center?: boolean }) {
   return (
@@ -53,9 +54,9 @@ export default function InsuranceSection({ center = false }: { center?: boolean 
 
       <p className="mt-5 text-plum-soft">
         Have a plan not listed?{" "}
-        <a href={site.phoneHref} className="font-semibold text-wine link-underline">
+        <PhoneLink href={site.phoneHref} className="font-semibold text-wine link-underline">
           Call {site.phone}
-        </a>{" "}
+        </PhoneLink>{" "}
         — we&apos;ll check it for you.
       </p>
     </>

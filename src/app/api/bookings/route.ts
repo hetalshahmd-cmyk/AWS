@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getUserSession } from "@/lib/auth";
+import { sendServerEvent } from "@/lib/meta";
 import { createBooking, SlotUnavailableError } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +64,17 @@ export async function POST(request: Request) {
         pronouns: str(patient.pronouns, 40) || undefined,
       },
     });
+
+    // Server-side truth: this is the only place a booking is provably real.
+    // Deliberately sent with no reason, service, patient detail or user id —
+    // just "a booking happened", tied to the browser event by eventId.
+    const eventId = str(body.eventId, 64);
+    if (eventId) {
+      await sendServerEvent(request, "Schedule", {
+        eventId,
+        sourceUrl: request.headers.get("referer") ?? undefined,
+      });
+    }
 
     return NextResponse.json({ booking }, { status: 201 });
   } catch (error) {

@@ -145,12 +145,18 @@ try {
       const date = isoAddDays(today, index);
       const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
       if (weekday === 0 || weekday === 6) continue;
+      // Friday closes at 2pm. Creating the full grid anyway left 2:30, 3:15,
+      // 4:00 and 4:45pm bookable at a locked office — four guaranteed no-shows
+      // every week. Keep this in step with officeHours in src/lib/practice.ts.
+      const closesAt = weekday === 5 ? timeToMinutes("2:00 pm") : Infinity;
       for (const time of SLOT_TIMES) {
+        const minutes = timeToMinutes(time);
+        if (minutes >= closesAt) continue;
         docs.push({
           _id: new ObjectId(),
           date,
           time,
-          minutes: timeToMinutes(time),
+          minutes,
           capacity: 1,
           booked: 0,
           active: true,

@@ -1,26 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "./session-context";
-import { safeNext } from "./safe-next";
 
 const FIELD =
   "focus-ring w-full rounded-lg border border-mist bg-white px-3.5 py-3 text-[16px] placeholder:text-plum-soft/70";
 const LABEL = "mb-1.5 block text-[14px] font-semibold";
 
-/** Sign-in only — registration is the multi-step RegisterForm. */
-export default function AuthForm() {
+/**
+ * Sign-in only — registration is the multi-step RegisterForm.
+ *
+ * `next` arrives as a prop, already sanitised on the server. Reading it with
+ * useSearchParams instead would opt this whole route out of server rendering,
+ * which is what used to leave the page blank until JavaScript arrived.
+ */
+export default function AuthForm({ next }: { next: string }) {
   const router = useRouter();
-  const params = useSearchParams();
   const { setUser } = useSession();
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const next = safeNext(params.get("next"));
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -52,7 +54,7 @@ export default function AuthForm() {
 
   return (
     <form onSubmit={onSubmit} className="mt-6 space-y-4">
-      {next === "/book" && (
+      {next.startsWith("/book") && (
         <p className="rounded-lg bg-sage-soft px-3.5 py-2.5 text-[15px] text-sage-ink">
           Log in to book your appointment — we&apos;ll take you straight back.
         </p>

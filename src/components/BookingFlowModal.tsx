@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { practice } from "@/lib/practice";
 import { addDays, formatShort, type DayAvailability } from "@/lib/availability";
+import { newEventId, track } from "./analytics/track";
 import { useSession } from "./auth/session-context";
 import { fetchAvailability, useBooking } from "./booking-context";
 import VisitReasonSelect from "./VisitReasonSelect";
@@ -314,6 +315,10 @@ function AboutYouStep({
     setBusy(true);
     setError("");
 
+    // Shared with the server event so Meta deduplicates the pair into one
+    // conversion instead of counting the same booking twice.
+    const eventId = newEventId();
+
     try {
       const response = await fetch("/api/bookings", {
         method: "POST",
@@ -324,6 +329,7 @@ function AboutYouStep({
           patientType,
           insurance,
           patient: form,
+          eventId,
         }),
       });
       const data = await response.json();
@@ -337,6 +343,10 @@ function AboutYouStep({
         setError(data.error ?? "Could not save the booking");
         return;
       }
+
+      // Only on a real 201 — never in the 409 branch above, where the slot was
+      // lost and no appointment exists. The event carries no booking details.
+      track("Schedule", eventId);
       onBooked();
     } catch {
       setError("Could not reach the server. Please try again.");

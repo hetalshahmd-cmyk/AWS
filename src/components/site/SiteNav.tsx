@@ -8,6 +8,7 @@ import { navLinks, site } from "@/lib/site";
 import Ico from "./Ico";
 import UserMenu from "./UserMenu";
 import { BookButton } from "./ui";
+import PhoneLink from "@/components/analytics/PhoneLink";
 
 export default function SiteNav() {
   const pathname = usePathname();
@@ -59,13 +60,13 @@ export default function SiteNav() {
           </nav>
 
           <div className="flex items-center gap-2.5">
-            <a
+            <PhoneLink
               href={site.phoneHref}
               className="focus-ring hidden items-center gap-1.5 whitespace-nowrap font-semibold text-sage min-[880px]:inline-flex"
             >
               <Ico name="phone" className="h-[1.15em] w-[1.15em]" />
               {site.phone}
-            </a>
+            </PhoneLink>
             <BookButton size="sm" />
             <UserMenu />
             <button
