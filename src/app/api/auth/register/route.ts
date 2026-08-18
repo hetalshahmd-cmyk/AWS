@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { createUserSession } from "@/lib/auth";
+import { sendServerEvent } from "@/lib/meta";
 import { clearCode, isEmailVerified } from "@/lib/otp";
 import { DuplicateUserError, registerUser } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
-  let body: { name?: string; email?: string; password?: string };
+  let body: { name?: string; email?: string; password?: string; eventId?: string };
   try {
     body = await request.json();
   } catch {
@@ -41,6 +42,18 @@ export async function POST(request: Request) {
     const user = await registerUser({ name, email, password });
     await createUserSession(user);
     await clearCode(email);
+
+    // Server-side truth for the account creation. Sent with no name, email or
+    // user id — only the fact that a registration completed, tied to the
+    // browser event by eventId so Meta counts one, not two.
+    const eventId = typeof body.eventId === "string" ? body.eventId.trim().slice(0, 64) : "";
+    if (eventId) {
+      await sendServerEvent(request, "CompleteRegistration", {
+        eventId,
+        sourceUrl: request.headers.get("referer") ?? undefined,
+      });
+    }
+
     return NextResponse.json({ user }, { status: 201 });
   } catch (error) {
     if (error instanceof DuplicateUserError) {

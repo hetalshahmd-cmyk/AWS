@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { newEventId, track } from "@/components/analytics/track";
 import { useSession } from "./session-context";
 
 const FIELD =
@@ -67,6 +68,10 @@ export default function RegisterForm({ next }: { next: string }) {
         return;
       }
 
+      // First real intent signal a cold ad visitor produces. Not fired on a
+      // resend — that would inflate the count without new intent.
+      if (!resend) track("Lead");
+
       setStep("code");
       setCooldown(45);
       setNotice(
@@ -114,11 +119,14 @@ export default function RegisterForm({ next }: { next: string }) {
     setBusy(true);
     setError("");
 
+    // Shared with the server event so the pair deduplicates into one.
+    const eventId = newEventId();
+
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, eventId }),
       });
       const data = await response.json();
 
@@ -127,6 +135,10 @@ export default function RegisterForm({ next }: { next: string }) {
         if (data.needsOtp) setStep("code");
         return;
       }
+
+      // Higher volume than completed bookings, which is why campaigns
+      // optimise on this. Carries no name, email or account id.
+      track("CompleteRegistration", eventId);
 
       setUser(data.user);
       router.push(next);
