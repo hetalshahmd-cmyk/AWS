@@ -35,6 +35,14 @@ export const metadata: Metadata = {
     description: site.description,
     images: ["/logo2.png"],
   },
+  // Proves to Meta that we own this domain, which is what unlocks Aggregated
+  // Event Measurement and stops anyone else claiming it. Rendered server-side
+  // into <head> — Meta rejects the tag if JavaScript inserts it.
+  verification: {
+    other: {
+      "facebook-domain-verification": "q88a0opy15vaa0ozidde2lgk5xzidj",
+    },
+  },
   robots: { index: true, follow: true },
 };
 
