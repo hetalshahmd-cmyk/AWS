@@ -3,6 +3,11 @@ export const site = {
   tagline: "Gynecology & Women's Care",
   phone: "(623) 846-7597",
   phoneHref: "tel:+16238467597",
+  /**
+   * Where every "Book Now" CTA sends people. Currently the practice's Healow
+   * page — set this back to "/book" to use the built-in booking flow again.
+   */
+  bookingUrl: "https://healow.com/apps/practice/hetal-c-shah-md-6710?v=2&t=2",
   announce: {
     strong: "FREE pregnancy test",
     rest: "Walk in today · Phoenix & Glendale",

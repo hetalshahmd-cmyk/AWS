@@ -48,7 +48,7 @@ export default function ProvidersPage() {
               ))}
             </div>
 
-            <Button href="/book" variant="line" size="sm" className="mt-auto">
+            <Button href={site.bookingUrl} variant="line" size="sm" className="mt-auto">
               {provider.cta}
             </Button>
           </article>

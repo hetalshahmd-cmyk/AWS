@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Booking } from "@/lib/models";
 import { formatLong } from "@/lib/availability";
 import { practice } from "@/lib/practice";
+import { site } from "@/lib/site";
 import { useSession } from "./session-context";
 
 export default function MyBookings() {
@@ -97,12 +97,14 @@ export default function MyBookings() {
       ) : bookings.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-mist bg-shell p-8 text-center">
           <p className="text-plum-soft">You don&apos;t have any appointments yet.</p>
-          <Link
-            href="/book"
+          <a
+            href={site.bookingUrl}
+            target="_blank"
+            rel="noreferrer"
             className="focus-ring mt-4 inline-flex rounded-full bg-wine px-6 py-3 text-[16px] font-semibold text-white transition hover:bg-wine-deep"
           >
             Book an appointment
-          </Link>
+          </a>
         </div>
       ) : (
         <>
@@ -121,9 +123,14 @@ export default function MyBookings() {
             {upcoming.length === 0 && (
               <p className="rounded-2xl border border-mist bg-shell px-5 py-6 text-plum-soft">
                 Nothing coming up.{" "}
-                <Link href="/book" className="font-semibold text-wine link-underline">
+                <a
+                  href={site.bookingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-wine link-underline"
+                >
                   Book an appointment
-                </Link>
+                </a>
                 .
               </p>
             )}

@@ -80,12 +80,14 @@ export default function SiteFooter() {
               >
                 Glendale · 6370 W Union Hills Dr
               </Link>
-              <Link
-                href="/book"
+              <a
+                href={site.bookingUrl}
+                target="_blank"
+                rel="noreferrer"
                 className="focus-ring block py-1 text-[0.94rem] font-semibold text-wine"
               >
                 Book online →
-              </Link>
+              </a>
             </div>
           </div>
 

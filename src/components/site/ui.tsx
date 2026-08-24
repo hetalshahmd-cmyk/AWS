@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PhoneLink from "@/components/analytics/PhoneLink";
+import { site } from "@/lib/site";
 import Ico, { type IcoName } from "./Ico";
 
 const BASE =
@@ -70,7 +71,7 @@ export function Button({
 
 export function BookButton(props: Omit<ButtonProps, "href" | "children">) {
   return (
-    <Button href="/book" icon="cal" {...props}>
+    <Button href={site.bookingUrl} icon="cal" {...props}>
       Book Now
     </Button>
   );
