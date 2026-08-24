@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BookLink from "@/components/analytics/BookLink";
 import PhoneLink from "@/components/analytics/PhoneLink";
 import { site } from "@/lib/site";
 import Ico, { type IcoName } from "./Ico";
@@ -48,6 +49,16 @@ export function Button({
       <PhoneLink href={href} className={classes}>
         {content}
       </PhoneLink>
+    );
+  }
+
+  // Booking leaves this domain now, so the click is the last thing we can
+  // measure. Same reasoning as the phone branch above.
+  if (href === site.bookingUrl) {
+    return (
+      <BookLink href={href} className={classes}>
+        {content}
+      </BookLink>
     );
   }
 

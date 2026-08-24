@@ -68,9 +68,9 @@ export default function RegisterForm({ next }: { next: string }) {
         return;
       }
 
-      // First real intent signal a cold ad visitor produces. Not fired on a
-      // resend — that would inflate the count without new intent.
-      if (!resend) track("Lead");
+      // No Lead here. Booking moved off-site to Healow, so Lead is reserved for
+      // the Book Now click (see analytics/BookLink.tsx) and means exactly one
+      // thing: booking intent. Signing up is no longer part of booking.
 
       setStep("code");
       setCooldown(45);

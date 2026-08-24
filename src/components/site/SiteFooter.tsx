@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { site } from "@/lib/site";
+import BookLink from "@/components/analytics/BookLink";
 import PhoneLink from "@/components/analytics/PhoneLink";
 import { BookButton, Button } from "./ui";
 
@@ -80,14 +81,12 @@ export default function SiteFooter() {
               >
                 Glendale · 6370 W Union Hills Dr
               </Link>
-              <a
+              <BookLink
                 href={site.bookingUrl}
-                target="_blank"
-                rel="noreferrer"
                 className="focus-ring block py-1 text-[0.94rem] font-semibold text-wine"
               >
                 Book online →
-              </a>
+              </BookLink>
             </div>
           </div>
 
