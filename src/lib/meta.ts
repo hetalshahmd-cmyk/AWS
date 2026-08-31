@@ -61,8 +61,19 @@ function clientIp(request: Request): string | undefined {
   return request.headers.get("x-real-ip") ?? undefined;
 }
 
-export function hasAdConsent(request: Request): boolean {
-  return readCookies(request)[CONSENT_COOKIE] === "granted";
+/**
+ * Measurement runs unless the visitor opted out. This must agree with the
+ * browser notice in components/analytics — if the server demanded an explicit
+ * "granted" it would silently drop the server half of every event for the
+ * majority who never touch the notice at all.
+ *
+ * Global Privacy Control and Do Not Track are honoured here as well as in the
+ * browser, because a server event does not pass through the pixel.
+ */
+export function adTrackingAllowed(request: Request): boolean {
+  if (request.headers.get("sec-gpc") === "1") return false;
+  if (request.headers.get("dnt") === "1") return false;
+  return readCookies(request)[CONSENT_COOKIE] !== "denied";
 }
 
 type SendOptions = {
@@ -82,7 +93,7 @@ export async function sendServerEvent(
   { eventId, sourceUrl }: SendOptions,
 ): Promise<void> {
   if (!isMetaConfigured) return;
-  if (!hasAdConsent(request)) return;
+  if (!adTrackingAllowed(request)) return;
 
   const cookies = readCookies(request);
 

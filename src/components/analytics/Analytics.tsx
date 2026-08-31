@@ -31,7 +31,24 @@ function subscribe(onChange: () => void) {
   };
 }
 
+/**
+ * Global Privacy Control and Do Not Track count as an opt-out, so the privacy
+ * policy's promise to honour them is true rather than aspirational. These
+ * visitors never see the notice either — they have already answered it.
+ */
+function signalsOptOut(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const nav = navigator as Navigator & {
+    globalPrivacyControl?: boolean;
+    msDoNotTrack?: string;
+  };
+  if (nav.globalPrivacyControl === true) return true;
+  const dnt = nav.doNotTrack ?? nav.msDoNotTrack;
+  return dnt === "1" || dnt === "yes";
+}
+
 function getSnapshot(): Consent | null {
+  if (signalsOptOut()) return "denied";
   return readConsent();
 }
 
@@ -45,8 +62,9 @@ function writeConsent(value: Consent) {
 }
 
 /**
- * Meta pixel. Mounted only once consent exists, so the script itself is the
- * consent gate — there is no "loaded but disabled" state to get wrong.
+ * Meta pixel. Mounted unless the visitor has opted out, so the presence of the
+ * script is itself the switch — there is no "loaded but disabled" state to get
+ * wrong.
  */
 function MetaPixel() {
   const pathname = usePathname();
@@ -94,20 +112,25 @@ fbq('track','PageView');`}
   );
 }
 
-function ConsentBanner({ onChoose }: { onChoose: (value: Consent) => void }) {
+/**
+ * A notice, not a gate. It tells the visitor what is already happening and
+ * makes stopping it one click — the ordinary US pattern. Both buttons write
+ * the same cookie, so the notice does not come back either way.
+ */
+function TrackingNotice({ onChoose }: { onChoose: (value: Consent) => void }) {
   return (
     <div
-      role="dialog"
-      aria-label="Cookie choices"
+      role="region"
+      aria-label="Cookie notice"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-mist bg-white shadow-[0_-8px_28px_-18px_rgba(44,32,38,0.45)]"
     >
       <div className="mx-auto flex max-w-[1120px] flex-col gap-4 px-[clamp(15px,4vw,40px)] py-4 min-[860px]:flex-row min-[860px]:items-center min-[860px]:justify-between">
         <p className="max-w-[70ch] text-[0.95rem] text-plum-soft">
-          We use cookies from Facebook to see whether our ads help people find care.{" "}
+          We use cookies from Facebook to measure whether our ads help people find care.{" "}
           <strong className="text-plum">
             We never share your health information, your reason for visit, or your details.
           </strong>{" "}
-          The site works exactly the same if you say no.{" "}
+          You can opt out, and the site works exactly the same.{" "}
           <Link href="/privacy" className="font-semibold text-wine link-underline">
             Read our privacy policy
           </Link>
@@ -118,14 +141,14 @@ function ConsentBanner({ onChoose }: { onChoose: (value: Consent) => void }) {
             onClick={() => onChoose("denied")}
             className="focus-ring rounded-full border-[1.5px] border-wine px-5 py-2.5 text-[15px] font-semibold text-wine transition hover:bg-wine hover:text-white"
           >
-            No thanks
+            Opt out
           </button>
           <button
             type="button"
             onClick={() => onChoose("granted")}
             className="focus-ring rounded-full bg-wine px-5 py-2.5 text-[15px] font-semibold text-white transition hover:bg-wine-deep"
           >
-            Allow
+            OK
           </button>
         </div>
       </div>
@@ -143,7 +166,16 @@ export default function Analytics() {
   const choose = useCallback((value: Consent) => writeConsent(value), []);
 
   if (!PIXEL_ID || consent === "unread") return null;
-  if (consent === null) return <ConsentBanner onChoose={choose} />;
 
-  return consent === "granted" ? <MetaPixel /> : null;
+  // Measurement runs unless the visitor opts out, so someone who ignores the
+  // notice is still counted — the opposite of a gate. The US has no cookie
+  // opt-in requirement and Arizona no state privacy law, and nothing
+  // health-derived is ever sent (see lib/meta.ts), so what is on by default
+  // here is a page view and a click, never a condition.
+  return (
+    <>
+      {consent !== "denied" && <MetaPixel />}
+      {consent === null && <TrackingNotice onChoose={choose} />}
+    </>
+  );
 }
