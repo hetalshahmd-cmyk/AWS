@@ -4,10 +4,10 @@ export const site = {
   phone: "(623) 846-7597",
   phoneHref: "tel:+16238467597",
   /**
-   * Where every "Book Now" CTA sends people. Currently the practice's Healow
+   * Where every "Book Now" CTA sends people. Currently the practice's Zocdoc
    * page — set this back to "/book" to use the built-in booking flow again.
    */
-  bookingUrl: "https://healow.com/apps/practice/hetal-c-shah-md-6710?v=2&t=2",
+  bookingUrl: "https://www.zocdoc.com/booking-link/practice/arizona-womens-specialists-180158",
   announce: {
     strong: "FREE pregnancy test",
     rest: "Walk in today · Phoenix & Glendale",
