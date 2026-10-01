@@ -7,10 +7,10 @@ import { newEventId, track } from "@/components/analytics/track";
 import { useSession } from "./session-context";
 
 const FIELD =
-  "focus-ring w-full rounded-lg border border-mist bg-white px-3.5 py-3 text-[16px] placeholder:text-plum-soft/70";
-const LABEL = "mb-1.5 block text-[14px] font-semibold";
+  "focus-ring min-h-12 w-full rounded-xl border border-mist bg-white px-4 py-3 text-[16px] transition-colors placeholder:text-plum-soft/70 hover:border-plum/30 focus-visible:border-wine";
+const LABEL = "mb-2 block text-[14px] font-medium text-plum";
 const BTN =
-  "focus-ring w-full rounded-full bg-wine px-6 py-3 text-[16px] font-semibold text-white transition hover:bg-wine-deep disabled:opacity-60";
+  "focus-ring min-h-12 w-full rounded-full bg-wine px-6 py-3 text-[16px] font-medium text-white shadow-[0_12px_28px_-14px_rgba(124,44,62,.9)] transition hover:bg-wine-deep active:scale-[0.99] disabled:opacity-60";
 
 type Step = "details" | "code" | "password";
 

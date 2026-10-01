@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Newsreader } from "next/font/google";
 import "./globals.css";
 import Analytics from "@/components/analytics/Analytics";
 import { SessionProvider } from "@/components/auth/session-context";
@@ -8,6 +8,13 @@ import { site } from "@/lib/site";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+});
+
+/** Editorial serif for headings. Variable optical size keeps it crisp from 20px to 72px. */
+const newsreader = Newsreader({
+  variable: "--font-newsreader",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
 });
 
 /** Absolute base for canonical URLs and social previews. */
@@ -20,7 +27,8 @@ export const metadata: Metadata = {
     template: `%s`,
   },
   description: site.description,
-  alternates: { canonical: "/" },
+  // No canonical here: it would be inherited by every page and tell search
+  // engines they are all copies of the home page. Each page sets its own.
   openGraph: {
     type: "website",
     url: "/",
@@ -50,7 +58,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} ${newsreader.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-white font-sans text-[17px] leading-[1.62]">
         <SessionProvider>{children}</SessionProvider>
         <Analytics />

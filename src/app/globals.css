@@ -1,21 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  /* Marketing site — wine + sage on white */
+  /*
+   * Marketing site — warm ivory, deep charcoal, wine as a restrained accent.
+   * The names are shared with the admin and booking screens, so the hues stay
+   * in the same family: only warmth and depth were tuned.
+   */
   --color-wine: #7c2c3e;
   --color-wine-deep: #5c1e2d;
-  --color-wine-soft: #f6e7eb;
+  --color-wine-soft: #f4e8ea;
   --color-sage: #4e7b73;
   --color-sage-2: #6e9e95;
-  --color-sage-soft: #e8f1ee;
-  --color-sage-ink: #33534c;
-  --color-plum: #2c2026;
-  --color-plum-soft: #6c5e63;
-  --color-mist: #ece4e7;
-  --color-shell: #f7f4f5;
+  --color-sage-soft: #e7efec;
+  --color-sage-ink: #2f4f48;
+  --color-plum: #241c20;
+  --color-plum-soft: #5e5357;
+  --color-mist: #e9e1d9;
+  --color-shell: #f6f1eb;
 
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia,
-    serif;
+  /* Editorial neutrals for the public pages. */
+  --color-ivory: #fbf8f4;
+  --color-sand: #efe7de;
+  --color-stone: #8a7e78;
+  --color-night: #1d1619;
+
+  --font-display: var(--font-newsreader), "Iowan Old Style", Georgia, serif;
 
   /* Booking page — same wine + sage brand, tuned for a dense scheduling UI.
      `gold` is the "has openings" accent; it reads as sage here. */
@@ -35,6 +44,8 @@
     "Segoe UI", Roboto, sans-serif;
 
   --radius-card: 14px;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html,
@@ -45,6 +56,8 @@ body {
 
 html {
   scroll-behavior: smooth;
+  /* Anchor jumps land below the sticky header. */
+  scroll-padding-top: 96px;
 }
 
 body {
@@ -64,8 +77,104 @@ body {
   }
 
   .focus-ring:focus-visible {
-    outline: 2px solid var(--color-teal);
-    outline-offset: 2px;
+    outline: 2px solid var(--color-wine);
+    outline-offset: 3px;
+  }
+
+  /* One soft, warm elevation used by every card on the public site. */
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px rgba(36, 28, 32, 0.04),
+      0 18px 40px -24px rgba(36, 28, 32, 0.22);
+  }
+
+  .shadow-lift {
+    box-shadow:
+      0 2px 4px rgba(36, 28, 32, 0.05),
+      0 30px 60px -30px rgba(36, 28, 32, 0.35);
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/*
+ * Scroll reveals. Pure CSS (scroll-driven animations), so nothing waits on
+ * JavaScript: browsers without support, and anyone who asked for reduced
+ * motion, simply see the content in place.
+ */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes reveal-image {
+  from {
+    clip-path: inset(8% 8% 8% 8% round 28px);
+    transform: scale(1.06);
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 28px);
+    transform: none;
+  }
+}
+
+@keyframes hero-zoom {
+  from {
+    transform: scale(1.07);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 32%;
+    }
+
+    .reveal-image {
+      animation: reveal-image linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 35%;
+    }
+  }
+
+  .hero-slide[data-active="true"] .hero-zoom {
+    animation: hero-zoom 9s var(--ease-out-soft) both;
+  }
+
+  .hero-progress[data-running="true"] {
+    animation: progress-fill var(--hero-interval, 7s) linear both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
 

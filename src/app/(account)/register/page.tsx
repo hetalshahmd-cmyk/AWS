@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AuthShell from "@/components/auth/AuthShell";
 import RegisterForm from "@/components/auth/RegisterForm";
 import { safeNext } from "@/components/auth/safe-next";
 import { site } from "@/lib/site";
@@ -24,8 +25,8 @@ export default async function RegisterPage({
   const booking = next.startsWith("/book");
 
   return (
-    <div className="mx-auto w-full max-w-md px-5 py-[clamp(2.5rem,6vw,4.5rem)]">
-      <h1 className="font-display text-[clamp(1.8rem,4vw,2.4rem)] font-semibold leading-tight">
+    <AuthShell>
+      <h1 className="font-display text-[clamp(2.2rem,4.5vw,3rem)] font-normal leading-[1.05] tracking-[-0.02em] text-plum">
         {booking ? "Create an account to book" : "Create your account"}
       </h1>
       <p className="mt-2 text-plum-soft">
@@ -36,7 +37,7 @@ export default async function RegisterPage({
       <RegisterForm next={next} />
 
       {booking && (
-        <p className="mt-6 rounded-lg border border-mist bg-shell px-3.5 py-3 text-[15px] text-plum-soft">
+        <p className="mt-6 rounded-2xl border border-mist bg-white px-4 py-3.5 text-[15px] text-plum-soft">
           In a hurry, or would rather not make an account?{" "}
           <PhoneLink href={site.phoneHref} className="font-semibold text-wine link-underline">
             Call {site.phone}
@@ -44,6 +45,6 @@ export default async function RegisterPage({
           — walk-ins are welcome too.
         </p>
       )}
-    </div>
+    </AuthShell>
   );
 }

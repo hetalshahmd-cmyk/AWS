@@ -29,7 +29,7 @@ export default function UserMenu() {
   }, [open]);
 
   // Placeholder keeps the header from jumping while the session loads.
-  if (loading) return <span className="h-10 w-10 rounded-full bg-shell" aria-hidden="true" />;
+  if (loading) return <span className="h-10 w-10 rounded-full bg-sand" aria-hidden="true" />;
 
   if (!user) {
     // Don't point `next` at an auth page — that used to send new registrations
@@ -40,7 +40,7 @@ export default function UserMenu() {
     return (
       <Link
         href={`/login${next}`}
-        className="focus-ring inline-flex items-center gap-1.5 rounded-full border-[1.5px] border-wine px-3.5 py-2 text-[15px] font-semibold text-wine transition hover:bg-wine hover:text-white"
+        className="focus-ring inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[0.95rem] font-medium text-plum transition hover:text-wine"
       >
         <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="1.8">
           <circle cx="12" cy="8" r="3.5" />

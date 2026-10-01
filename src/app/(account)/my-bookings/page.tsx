@@ -9,8 +9,10 @@ export const metadata: Metadata = {
 
 export default function MyBookingsPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl px-5 py-[clamp(2.2rem,5vw,3.6rem)]">
-      <MyBookings />
+    <div className="min-h-full bg-ivory">
+      <div className="mx-auto w-full max-w-3xl px-[clamp(20px,5vw,48px)] py-[clamp(2.5rem,6vw,4.5rem)]">
+        <MyBookings />
+      </div>
     </div>
   );
 }

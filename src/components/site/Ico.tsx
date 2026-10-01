@@ -49,6 +49,17 @@ const PATHS = {
     </>
   ),
   shield: <path d="M12 2.5l8 3v6.2c0 4.7-3.2 8.4-8 9.8-4.8-1.4-8-5.1-8-9.8V5.5l8-3z" />,
+  back: <path d="M19 12H5M11 6l-6 6 6 6" />,
+  close: <path d="M6 6l12 12M18 6 6 18" />,
+  pause: <path d="M9 5v14M15 5v14" />,
+  play: <path d="M7 4.5v15l12-7.5z" />,
+  globe: (
+    <>
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M2.5 12h19M12 2.5a14.5 14.5 0 0 1 0 19 14.5 14.5 0 0 1 0-19z" />
+    </>
+  ),
+  external: <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />,
 } satisfies Record<string, JSX.Element>;
 
 export default function Ico({ name, className = "" }: { name: IcoName; className?: string }) {
