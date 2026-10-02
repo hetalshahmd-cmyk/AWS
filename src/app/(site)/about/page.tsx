@@ -5,7 +5,7 @@ import {
   BookButton,
   Button,
   Eyebrow,
-  MediaSplit,
+  Photo,
   PageHeader,
   Section,
 } from "@/components/site/ui";
@@ -44,17 +44,22 @@ export default function ProvidersPage() {
               key={provider.name}
               className="reveal group flex flex-col overflow-hidden rounded-[28px] border border-mist bg-white transition duration-300 hover:-translate-y-1 hover:shadow-lift"
             >
-              <div className="relative flex justify-center bg-[linear-gradient(160deg,#f6f1eb_0%,#fbf8f4_70%)] pb-8 pt-10">
-                <span className="absolute left-5 top-5 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[0.78rem] font-medium text-sage-ink shadow-soft">
+              {/* Each card is banded in that provider's own colour. */}
+              <div className={`relative h-36 bg-linear-to-br ${provider.avatar}`}>
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 bg-[radial-gradient(circle_at_85%_10%,rgba(255,255,255,.28),transparent_55%)]"
+                />
+                <span className="absolute left-5 top-5 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-[0.78rem] font-medium text-sage-ink">
                   <span className="h-1.5 w-1.5 rounded-full bg-sage" aria-hidden="true" />
                   Accepting new patients
                 </span>
-                <div className="mt-6">
+                <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 transition-transform duration-500 group-hover:scale-105">
                   <ProviderAvatar provider={provider} size="lg" />
                 </div>
               </div>
 
-              <div className="flex flex-1 flex-col p-[clamp(1.5rem,3vw,2rem)] text-center">
+              <div className="flex flex-1 flex-col px-[clamp(1.5rem,3vw,2rem)] pb-[clamp(1.5rem,3vw,2rem)] pt-20 text-center">
                 <h3 className="font-display text-[1.65rem] leading-tight text-plum">
                   {provider.name}
                 </h3>
@@ -100,11 +105,24 @@ export default function ProvidersPage() {
       </Section>
 
       <Section tone="ivory" labelledBy="practice-title">
-        <MediaSplit
-          image={photos.heroConsultation.src}
-          imageAlt={photos.heroConsultation.alt}
-          imagePosition="62% 50%"
-        >
+        <div className="grid items-center gap-14 min-[960px]:grid-cols-2 min-[960px]:gap-20">
+          <div className="relative mx-auto aspect-square w-full max-w-[560px] min-[960px]:mx-0">
+            <Photo
+              src={photos.heroConsultation.src}
+              alt={photos.heroConsultation.alt}
+              sizes="(min-width: 960px) 36vw, 75vw"
+              position="62% 50%"
+              className="absolute right-0 top-0 h-[72%] w-[80%]"
+            />
+            <Photo
+              src={photos.ultrasoundCloseup.src}
+              alt={photos.ultrasoundCloseup.alt}
+              sizes="(min-width: 960px) 22vw, 45vw"
+              position="55% 50%"
+              className="absolute bottom-0 left-0 h-[46%] w-[52%] border-[6px] border-ivory shadow-lift"
+            />
+          </div>
+          <div className="reveal">
           <Eyebrow>About the practice</Eyebrow>
           <h2
             id="practice-title"
@@ -120,7 +138,8 @@ export default function ProvidersPage() {
           <div className="mt-9">
             <BookButton />
           </div>
-        </MediaSplit>
+          </div>
+        </div>
       </Section>
     </>
   );

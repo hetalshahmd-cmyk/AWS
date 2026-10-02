@@ -68,7 +68,7 @@ export default function RegisterForm({ next }: { next: string }) {
         return;
       }
 
-      // No Lead here. Booking moved off-site to Healow, so Lead is reserved for
+      // No Lead here. Booking moved off-site to Zocdoc, so Lead is reserved for
       // the Book Now click (see analytics/BookLink.tsx) and means exactly one
       // thing: booking intent. Signing up is no longer part of booking.
 

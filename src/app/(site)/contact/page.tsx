@@ -27,9 +27,9 @@ export default function ContactPage() {
         eyebrow="Visit us"
         title="Two Phoenix-area offices"
         body="Walk in or book ahead — we're easy to reach at either location."
-        image={photos.phoenixAerial.src}
-        imageAlt={photos.phoenixAerial.alt}
-        imagePosition="50% 60%"
+        image={photos.superstition.src}
+        imageAlt={photos.superstition.alt}
+        imagePosition="40% 60%"
       >
         <CallAndBook />
       </PageHeader>

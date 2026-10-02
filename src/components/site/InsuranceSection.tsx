@@ -1,9 +1,18 @@
+import Image from "next/image";
+import { photos, type PhotoKey } from "@/lib/photos";
 import { insurancePills, insurancePlans, site } from "@/lib/site";
 import Ico from "./Ico";
 import { SectionHead } from "./ui";
 import PhoneLink from "@/components/analytics/PhoneLink";
 
-export default function InsuranceSection({ center = false }: { center?: boolean }) {
+export default function InsuranceSection({
+  center = false,
+  photo,
+}: {
+  center?: boolean;
+  /** Adds a photograph under the heading, with the plan count floating on it. */
+  photo?: PhotoKey;
+}) {
   return (
     <div className="grid gap-10 min-[1000px]:grid-cols-[0.85fr_1.15fr] min-[1000px]:gap-16">
       <div>
@@ -24,9 +33,28 @@ export default function InsuranceSection({ center = false }: { center?: boolean 
           </PhoneLink>{" "}
           — we&apos;ll check it for you.
         </p>
+
+        {photo && (
+          <div className="reveal relative mt-10 hidden aspect-[4/3] min-[1000px]:block">
+            <div className="relative h-full overflow-hidden rounded-[28px] bg-sand">
+              <Image
+                src={photos[photo].src}
+                alt={photos[photo].alt}
+                fill
+                sizes="(min-width: 1000px) 40vw, 100vw"
+                placeholder="blur"
+                className="object-cover object-[65%_40%]"
+              />
+            </div>
+            <div className="float-soft absolute -bottom-6 -right-6 rounded-[22px] bg-white px-6 py-5 shadow-lift">
+              <p className="font-display text-[2.4rem] leading-none text-wine">60+</p>
+              <p className="mt-1 text-[0.85rem] font-medium text-plum-soft">accepted plans</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="reveal">
+      <div className="reveal self-start rounded-[28px] bg-ivory p-[clamp(1.25rem,3vw,2rem)]">
         <ul className="flex flex-wrap gap-2.5">
           {insurancePills.map((pill) => (
             <li
@@ -39,7 +67,7 @@ export default function InsuranceSection({ center = false }: { center?: boolean 
           ))}
         </ul>
 
-        <details className="group mt-4 rounded-2xl border border-mist bg-white">
+        <details className="group mt-5 rounded-2xl border border-mist bg-white">
           <summary className="focus-ring flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-5 py-4 font-medium text-plum [&::-webkit-details-marker]:hidden">
             See all accepted plans (60+)
             <Ico

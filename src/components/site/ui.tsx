@@ -319,7 +319,13 @@ export function Photo({
   preload?: boolean;
 }) {
   return (
-    <div className={`reveal-image relative overflow-hidden rounded-[28px] bg-sand ${className}`}>
+    // Callers may position the frame themselves (collages); otherwise it is the
+    // containing block for the fill image.
+    <div
+      className={`reveal-image overflow-hidden rounded-[28px] bg-sand ${
+        className.split(/\s+/).includes("absolute") ? "" : "relative"
+      } ${className}`}
+    >
       <Image
         src={src}
         alt={alt}

@@ -1,15 +1,25 @@
+import bookingPhone from "@/assets/photos/booking-phone.jpg";
 import clinicConsultWide from "@/assets/photos/clinic-consult-wide.jpg";
 import consultTablet from "@/assets/photos/consult-tablet.jpg";
+import doctorReview from "@/assets/photos/doctor-review.jpg";
+import firstTrimester from "@/assets/photos/first-trimester.jpg";
 import heroConsultation from "@/assets/photos/hero-consultation.jpg";
 import heroPregnancy from "@/assets/photos/hero-pregnancy.jpg";
 import heroUltrasound from "@/assets/photos/hero-ultrasound.jpg";
 import phoenixAerial from "@/assets/photos/phoenix-aerial.jpg";
 import pregnancyHands from "@/assets/photos/pregnancy-hands.jpg";
+import pregnancyTest from "@/assets/photos/pregnancy-test.jpg";
 import prenatalUltrasound from "@/assets/photos/prenatal-ultrasound.jpg";
+import receptionDesk from "@/assets/photos/reception-desk.jpg";
+import receptionTablet from "@/assets/photos/reception-tablet.jpg";
 import saguaroSunset from "@/assets/photos/saguaro-sunset.jpg";
 import stethoscope from "@/assets/photos/stethoscope.jpg";
+import superstition from "@/assets/photos/superstition.jpg";
+import teenSupport from "@/assets/photos/teen-support.jpg";
+import ultrasoundCloseup from "@/assets/photos/ultrasound-closeup.jpg";
 import ultrasoundScan from "@/assets/photos/ultrasound-scan.jpg";
 import ultrasoundScreen from "@/assets/photos/ultrasound-screen.jpg";
+import valleyView from "@/assets/photos/valley-view.jpg";
 
 /**
  * Every photograph on the public site, in one place.
@@ -26,7 +36,10 @@ import ultrasoundScreen from "@/assets/photos/ultrasound-screen.jpg";
  *   prenatalUltrasound, ultrasoundScan, ultrasoundScreen, heroUltrasound —
  *     Pexels (OB-GYN clinic series). heroUltrasound: a clinic name badge was
  *     retouched out.
- *   heroPregnancy (mirrored), stethoscope, phoenixAerial, saguaroSunset — Unsplash.
+ *   firstTrimester, doctorReview, ultrasoundCloseup — Pexels (same clinic series).
+ *   pregnancyTest, teenSupport, receptionDesk, receptionTablet, bookingPhone — Pexels.
+ *   heroPregnancy (mirrored), stethoscope, phoenixAerial, saguaroSunset,
+ *   valleyView, superstition — Unsplash.
  */
 export const photos = {
   heroConsultation: {
@@ -76,6 +89,46 @@ export const photos = {
   saguaroSunset: {
     src: saguaroSunset,
     alt: "A saguaro cactus silhouetted against an Arizona desert sunset",
+  },
+  firstTrimester: {
+    src: firstTrimester,
+    alt: "An expectant mother resting her hands on her belly while a clinician takes notes",
+  },
+  doctorReview: {
+    src: doctorReview,
+    alt: "A physician reviewing notes beside an ultrasound machine",
+  },
+  ultrasoundCloseup: {
+    src: ultrasoundCloseup,
+    alt: "A close view of an abdominal ultrasound in progress",
+  },
+  pregnancyTest: {
+    src: pregnancyTest,
+    alt: "A pregnancy test resting on a soft cream surface",
+  },
+  teenSupport: {
+    src: teenSupport,
+    alt: "Two young women holding a pregnancy test together",
+  },
+  receptionDesk: {
+    src: receptionDesk,
+    alt: "A friendly receptionist welcoming a patient at a clinic front desk",
+  },
+  receptionTablet: {
+    src: receptionTablet,
+    alt: "A front-desk team member checking details on a tablet",
+  },
+  bookingPhone: {
+    src: bookingPhone,
+    alt: "A smiling young woman booking an appointment on her phone at home",
+  },
+  valleyView: {
+    src: valleyView,
+    alt: "A saguaro on a ridge above the Phoenix valley at dusk",
+  },
+  superstition: {
+    src: superstition,
+    alt: "Saguaros and desert brush glowing at sunset below Arizona mountains",
   },
 } as const;
 

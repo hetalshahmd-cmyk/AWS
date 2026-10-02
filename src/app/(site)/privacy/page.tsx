@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  * it is the page the footer link points at. Keep both true if either changes.
  */
 
-const UPDATED = "August 24, 2026";
+const UPDATED = "October 2, 2026";
 
 /** Section titles, in order — they drive both the headings and the contents list. */
 const SECTIONS = [
@@ -218,16 +218,16 @@ export default function PrivacyPage() {
             Booking happens on another company&apos;s website
           </h3>
           <P>
-            When you choose &ldquo;Book Now&rdquo;, we send you to healow.com, the patient booking
-            service run by eClinicalWorks that our office uses for its appointment calendar.
+            When you choose &ldquo;Book Now&rdquo;, we send you to zocdoc.com, the patient booking
+            service run by Zocdoc, Inc. that our office uses for its appointment calendar.
             Anything you enter there is handled under{" "}
             <a
-              href="https://www.eclinicalworks.com/privacy-policy/"
+              href="https://www.zocdoc.com/about/privacypolicy/"
               target="_blank"
               rel="noreferrer"
               className="font-semibold text-wine link-underline"
             >
-              eClinicalWorks&apos; privacy policy
+              Zocdoc&apos;s privacy policy
             </a>
             , not this page. Our advertising cookies do not follow you there, and we do not receive
             your appointment details back from them through this website.

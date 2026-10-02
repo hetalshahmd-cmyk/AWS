@@ -3,16 +3,17 @@ import Link from "next/link";
 import HeroCarousel, { type HeroSlide } from "@/components/site/HeroCarousel";
 import Ico from "@/components/site/Ico";
 import InsuranceSection from "@/components/site/InsuranceSection";
+import ServicesBento from "@/components/site/ServicesBento";
 import StepsSection from "@/components/site/StepsSection";
 import Locations from "@/components/site/Locations";
+import Marquee from "@/components/site/Marquee";
 import ProviderAvatar from "@/components/site/ProviderAvatar";
 import {
   BookButton,
   Button,
-  Container,
   Eyebrow,
   IconTile,
-  MediaSplit,
+  Photo,
   Section,
   SectionHead,
 } from "@/components/site/ui";
@@ -77,61 +78,79 @@ export default function HomePage() {
       </HeroCarousel>
 
       {/* ------------------------------------------------------ trust row -- */}
-      <section aria-label="Why patients choose us" className="border-b border-mist bg-white">
-        <Container>
-          <ul className="grid grid-cols-2 gap-x-6 gap-y-4 py-8 min-[700px]:grid-cols-3 min-[1100px]:grid-cols-6">
-            {heroChips.map((chip) => (
-              <li key={chip} className="flex items-center gap-2.5 text-[0.95rem] text-plum">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-sage-soft text-sage-ink">
-                  <Ico name="check" className="h-3.5 w-3.5" />
-                </span>
-                {chip}
-              </li>
-            ))}
-          </ul>
-        </Container>
-      </section>
+      <Marquee items={heroChips} label="Why patients choose us" />
 
       {/* --------------------------------------------- free pregnancy test -- */}
-      <Section tone="ivory">
-        <MediaSplit
-          image={photos.pregnancyHands.src}
-          imageAlt={photos.pregnancyHands.alt}
-          imagePosition="50% 40%"
-        >
-          <Eyebrow>{site.announce.rest}</Eyebrow>
-          <h2 className="mt-5 font-display text-[clamp(2.2rem,4.6vw,3.5rem)] font-normal leading-[1.05] tracking-[-0.02em] text-plum">
-            Walk in for a <em className="italic text-wine">FREE</em> pregnancy test
-          </h2>
-          <p className="mt-5 max-w-[44ch] text-[1.12rem] leading-relaxed text-plum-soft">
-            No appointment needed — get answers today.
-          </p>
+      <Section tone="ivory" labelledBy="free-test-title">
+        <div className="grid items-center gap-14 min-[960px]:grid-cols-[1.05fr_1fr] min-[960px]:gap-20">
+          {/* Collage: a large photo, a smaller one overlapping it, and the offer as a badge. */}
+          <div className="relative mx-auto aspect-[5/6] w-full max-w-[560px] min-[960px]:mx-0">
+            <Photo
+              src={photos.pregnancyHands.src}
+              alt={photos.pregnancyHands.alt}
+              sizes="(min-width: 960px) 40vw, 80vw"
+              position="50% 40%"
+              className="absolute left-0 top-0 h-[84%] w-[78%]"
+            />
+            <Photo
+              src={photos.teenSupport.src}
+              alt={photos.teenSupport.alt}
+              sizes="(min-width: 960px) 22vw, 45vw"
+              position="50% 30%"
+              className="absolute bottom-0 right-0 h-[52%] w-[46%] border-[6px] border-ivory shadow-lift"
+            />
+            <div className="float-soft absolute right-[6%] top-[8%] grid h-[clamp(7rem,14vw,9rem)] w-[clamp(7rem,14vw,9rem)] place-items-center rounded-full bg-wine text-center text-white shadow-lift">
+              <span>
+                <span className="block font-display text-[clamp(1.8rem,3.4vw,2.4rem)] italic leading-none">
+                  FREE
+                </span>
+                <span className="mt-1 block text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-white/80">
+                  pregnancy test
+                </span>
+              </span>
+            </div>
+          </div>
 
-          <ul className="mt-9 grid gap-4 min-[520px]:grid-cols-3">
-            {quickLinks.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="focus-ring group flex h-full items-center gap-4 rounded-2xl border border-mist bg-white p-4 transition duration-300 hover:-translate-y-1 hover:border-wine/40 hover:shadow-soft min-[520px]:flex-col min-[520px]:items-start min-[520px]:gap-0 min-[520px]:p-5"
-                >
-                  <IconTile name={link.icon} size="sm" />
-                  <span className="min-w-0 flex-1 min-[520px]:mt-4">
-                    <span className="block font-display text-[1.15rem] leading-tight text-plum">
-                      {link.title}
+          <div className="reveal">
+            <Eyebrow>{site.announce.rest}</Eyebrow>
+            <h2
+              id="free-test-title"
+              className="mt-5 font-display text-[clamp(2.3rem,4.8vw,3.7rem)] font-normal leading-[1.04] tracking-[-0.02em] text-plum"
+            >
+              Walk in for a <em className="italic text-wine">FREE</em> pregnancy test
+            </h2>
+            <p className="mt-5 max-w-[44ch] text-[1.15rem] leading-relaxed text-plum-soft">
+              No appointment needed — get answers today.
+            </p>
+
+            <ul className="mt-10 border-t border-plum/10">
+              {quickLinks.map((link) => (
+                <li key={link.href} className="border-b border-plum/10">
+                  <Link
+                    href={link.href}
+                    className="focus-ring group flex items-center gap-5 py-5 transition-colors"
+                  >
+                    <IconTile name={link.icon} size="sm" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-display text-[1.4rem] leading-tight text-plum transition-colors group-hover:text-wine">
+                        {link.title}
+                      </span>
+                      <span className="mt-0.5 block text-[0.93rem] text-plum-soft">
+                        {link.body}
+                      </span>
                     </span>
-                    <span className="mt-1 block text-[0.86rem] leading-snug text-plum-soft">
-                      {link.body}
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-plum/15 text-plum transition duration-300 group-hover:border-wine group-hover:bg-wine group-hover:text-white">
+                      <Ico
+                        name="arrow"
+                        className="h-4 w-4 transition-transform duration-300 group-hover:-rotate-45"
+                      />
                     </span>
-                  </span>
-                  <Ico
-                    name="arrow"
-                    className="h-4 w-4 shrink-0 text-wine transition-transform duration-300 group-hover:translate-x-1 min-[520px]:mt-4"
-                  />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </MediaSplit>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </Section>
 
       {/* -------------------------------------------------------- services -- */}
@@ -143,96 +162,86 @@ export default function HomePage() {
             title="Complete care for you and your pregnancy"
             body="From your first pregnancy test to every prenatal visit — expert, judgment-free care under one roof."
           />
-          <Button href="/services" variant="line" arrow className="reveal mb-[clamp(2.25rem,5vw,3.5rem)]">
+          <Button
+            href="/services"
+            variant="line"
+            arrow
+            className="reveal mb-[clamp(2.25rem,5vw,3.5rem)]"
+          >
             All services
           </Button>
         </div>
-
-        <ul className="grid gap-px overflow-hidden rounded-[28px] border border-mist bg-mist min-[640px]:grid-cols-2 min-[1000px]:grid-cols-3">
-          {services.map((service, index) => (
-            <li key={service.title} className="reveal group bg-white">
-              <Link
-                href="/services"
-                className="focus-ring flex h-full flex-col p-[clamp(1.75rem,3vw,2.5rem)] transition-colors duration-300 hover:bg-ivory"
-              >
-                <div className="flex items-center justify-between">
-                  <IconTile name={service.icon} tone="sage" />
-                  <span className="font-display text-[1rem] text-stone">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                </div>
-                <h3 className="mt-8 font-display text-[1.55rem] leading-tight text-plum">
-                  {service.title}
-                </h3>
-                <p className="mt-3 flex-1 text-[0.98rem] leading-relaxed text-plum-soft">
-                  {service.body}
-                </p>
-                <span className="mt-6 inline-flex items-center gap-2 text-[0.92rem] font-medium text-wine">
-                  Learn more
-                  <Ico
-                    name="arrow"
-                    className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
-                  />
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <ServicesBento />
       </Section>
 
       {/* ------------------------------------------------------- providers -- */}
       <Section tone="sand" labelledBy="providers-title">
-        <MediaSplit
-          image={photos.consultTablet.src}
-          imageAlt={photos.consultTablet.alt}
-          imagePosition="40% 30%"
-          reverse
-        >
-          <Eyebrow>Meet our providers</Eyebrow>
-          <h2
-            id="providers-title"
-            className="mt-5 font-display text-[clamp(2.1rem,4.4vw,3.3rem)] font-normal leading-[1.06] tracking-[-0.02em] text-plum"
-          >
-            Care from a team that treats you with dignity
-          </h2>
-          <p className="mt-5 max-w-[52ch] text-[1.08rem] leading-relaxed text-plum-soft">
-            Our OB-GYN providers have cared for women across the Phoenix area — built on fast
-            access, honest pricing, and real respect, whatever your insurance, age, or situation.
-          </p>
-
-          <ul className="mt-8 divide-y divide-mist border-y border-mist">
-            {providers.map((provider) => (
-              <li key={provider.name} className="flex items-center gap-4 py-4">
-                <ProviderAvatar provider={provider} size="sm" />
-                <div className="min-w-0">
-                  <p className="font-display text-[1.2rem] leading-tight text-plum">
-                    {provider.name}
-                  </p>
-                  <p className="text-[0.9rem] text-plum-soft">{provider.cred}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          <ul className="mt-6 flex flex-wrap gap-2">
-            {providerCreds.map((cred) => (
-              <li
-                key={cred}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[0.86rem] text-plum"
-              >
-                <Ico name="check" className="h-3.5 w-3.5 text-sage" />
-                {cred}
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-9 flex flex-wrap gap-3 max-[480px]:flex-col">
-            <Button href="/about" variant="line" arrow>
-              Meet our providers
-            </Button>
-            <BookButton />
+        <div className="grid items-center gap-16 min-[960px]:grid-cols-[1fr_1.05fr] min-[960px]:gap-20">
+          <div className="relative mx-auto w-full max-w-[540px] pb-24 min-[960px]:mx-0 min-[960px]:pb-0">
+            <Photo
+              src={photos.doctorReview.src}
+              alt={photos.doctorReview.alt}
+              sizes="(min-width: 960px) 42vw, 90vw"
+              position="60% 30%"
+              className="aspect-[4/5] w-full"
+            />
+            {/* Floating roster: the providers' names sit on the photo as a card. */}
+            <div className="reveal absolute -bottom-2 left-4 right-4 rounded-[24px] bg-white/95 p-5 shadow-lift backdrop-blur min-[560px]:left-auto min-[560px]:right-[-1.5rem] min-[560px]:w-[330px] min-[960px]:bottom-10">
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-sage-soft px-3 py-1 text-[0.78rem] font-medium text-sage-ink">
+                <span className="h-1.5 w-1.5 rounded-full bg-sage" aria-hidden="true" />
+                Accepting new patients
+              </p>
+              <ul className="mt-4 space-y-3">
+                {providers.map((provider) => (
+                  <li key={provider.name} className="flex items-center gap-3">
+                    <ProviderAvatar provider={provider} size="sm" />
+                    <div className="min-w-0">
+                      <p className="font-display text-[1.1rem] leading-tight text-plum">
+                        {provider.name}
+                      </p>
+                      <p className="truncate text-[0.82rem] text-plum-soft">{provider.cred}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-        </MediaSplit>
+
+          <div className="reveal">
+            <Eyebrow>Meet our providers</Eyebrow>
+            <h2
+              id="providers-title"
+              className="mt-5 font-display text-[clamp(2.2rem,4.6vw,3.5rem)] font-normal leading-[1.05] tracking-[-0.02em] text-plum"
+            >
+              Care from a team that treats you with dignity
+            </h2>
+            <p className="mt-5 max-w-[52ch] text-[1.1rem] leading-relaxed text-plum-soft">
+              Our OB-GYN providers have cared for women across the Phoenix area — built on fast
+              access, honest pricing, and real respect, whatever your insurance, age, or situation.
+            </p>
+
+            <ul className="mt-9 grid gap-3 min-[520px]:grid-cols-2">
+              {providerCreds.map((cred) => (
+                <li
+                  key={cred}
+                  className="flex items-center gap-3 rounded-2xl bg-white px-4 py-4 text-[0.97rem] text-plum"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-wine-soft text-wine">
+                    <Ico name="check" className="h-4 w-4" />
+                  </span>
+                  {cred}
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-10 flex flex-wrap gap-3 max-[480px]:flex-col">
+              <Button href="/about" variant="line" arrow>
+                Meet our providers
+              </Button>
+              <BookButton />
+            </div>
+          </div>
+        </div>
       </Section>
 
       {/* ------------------------------------------------------ how it works -- */}
@@ -240,7 +249,7 @@ export default function HomePage() {
 
       {/* ------------------------------------------------------- insurance -- */}
       <Section>
-        <InsuranceSection center />
+        <InsuranceSection center photo="receptionTablet" />
       </Section>
 
       {/* ------------------------------------------------------- locations -- */}
