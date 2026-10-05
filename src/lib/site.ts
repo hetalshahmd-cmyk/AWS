@@ -170,32 +170,43 @@ export const prices = [
   },
 ];
 
+/**
+ * Names, titles and review counts match each provider's Zocdoc listing.
+ * `photo` keys into providerPhotos (lib/photos.ts); `zocdocReviews` is the
+ * count Zocdoc shows, or null where it shows none.
+ */
 export const providers = [
   {
     initials: "HS",
-    name: "Dr. Hetal Shah, MD",
-    cred: "Obstetrics & Gynecology",
+    photo: "hetalShah",
+    name: "Dr. Hetalkumar Shah, MD",
+    cred: "Gynecologist",
     languages: ["English", "Hindi", "Spanish"],
+    zocdocReviews: null,
     cta: "Book with Dr. Shah",
     avatar: "from-[#9C3E55] to-[#5C1E2D]",
   },
   {
     initials: "JD",
+    photo: "julieDenton",
     name: "Julie Denton, NP",
-    cred: "Nurse Practitioner · OB-GYN",
+    cred: "Nurse Practitioner (OB-GYN)",
     languages: ["English", "Spanish"],
+    zocdocReviews: 6,
     cta: "Book with Julie",
     avatar: "from-[#6E9E95] to-[#4E7B73]",
   },
   {
     initials: "KT",
-    name: "Kylee Tate, PA",
-    cred: "Physician Assistant · OB-GYN",
+    photo: "kyleeTate",
+    name: "Kylee Tate, PA-C",
+    cred: "Physician Assistant (OB-GYN)",
     languages: ["English", "Spanish"],
+    zocdocReviews: 15,
     cta: "Book with Kylee",
     avatar: "from-[#7C2C3E] to-[#4E7B73]",
   },
-];
+] as const;
 
 export const providerCreds = [
   "Board-Certified OB-GYN care",

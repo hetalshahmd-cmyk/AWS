@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Ico from "@/components/site/Ico";
 import ProviderAvatar from "@/components/site/ProviderAvatar";
+import ZocdocReviews from "@/components/site/ZocdocReviews";
 import {
   BookButton,
   Button,
@@ -16,7 +17,7 @@ import { providerCreds, providers, site } from "@/lib/site";
 export const metadata: Metadata = {
   title: `Our Providers — ${site.name}`,
   description:
-    "Meet the OB-GYN team at Arizona Women Specialists — Dr. Hetal Shah MD, Julie Denton NP, and Kylee Tate PA. All accepting new patients.",
+    "Meet the OB-GYN team at Arizona Women Specialists — Dr. Hetalkumar Shah MD, Julie Denton NP, and Kylee Tate PA-C. All accepting new patients.",
   alternates: { canonical: "/about" },
 };
 
@@ -64,6 +65,7 @@ export default function ProvidersPage() {
                   {provider.name}
                 </h3>
                 <p className="mt-1.5 text-[0.95rem] font-medium text-sage-ink">{provider.cred}</p>
+                <ZocdocReviews count={provider.zocdocReviews} className="mt-2 justify-center" />
 
                 <div className="mt-6 border-t border-mist pt-5">
                   <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-stone">

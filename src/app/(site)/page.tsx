@@ -8,6 +8,7 @@ import StepsSection from "@/components/site/StepsSection";
 import Locations from "@/components/site/Locations";
 import Marquee from "@/components/site/Marquee";
 import ProviderAvatar from "@/components/site/ProviderAvatar";
+import ZocdocReviews from "@/components/site/ZocdocReviews";
 import {
   BookButton,
   Button,
@@ -179,10 +180,10 @@ export default function HomePage() {
         <div className="grid items-center gap-16 min-[960px]:grid-cols-[1fr_1.05fr] min-[960px]:gap-20">
           <div className="relative mx-auto w-full max-w-[540px] pb-24 min-[960px]:mx-0 min-[960px]:pb-0">
             <Photo
-              src={photos.doctorReview.src}
-              alt={photos.doctorReview.alt}
+              src={photos.ultrasoundCloseup.src}
+              alt={photos.ultrasoundCloseup.alt}
               sizes="(min-width: 960px) 42vw, 90vw"
-              position="60% 30%"
+              position="62% 50%"
               className="aspect-[4/5] w-full"
             />
             {/* Floating roster: the providers' names sit on the photo as a card. */}
@@ -200,6 +201,7 @@ export default function HomePage() {
                         {provider.name}
                       </p>
                       <p className="truncate text-[0.82rem] text-plum-soft">{provider.cred}</p>
+                      <ZocdocReviews count={provider.zocdocReviews} className="mt-0.5" />
                     </div>
                   </li>
                 ))}

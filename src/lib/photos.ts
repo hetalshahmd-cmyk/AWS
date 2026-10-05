@@ -1,11 +1,13 @@
 import bookingPhone from "@/assets/photos/booking-phone.jpg";
 import clinicConsultWide from "@/assets/photos/clinic-consult-wide.jpg";
 import consultTablet from "@/assets/photos/consult-tablet.jpg";
-import doctorReview from "@/assets/photos/doctor-review.jpg";
 import firstTrimester from "@/assets/photos/first-trimester.jpg";
 import heroConsultation from "@/assets/photos/hero-consultation.jpg";
 import heroPregnancy from "@/assets/photos/hero-pregnancy.jpg";
 import heroUltrasound from "@/assets/photos/hero-ultrasound.jpg";
+import hetalShah from "@/assets/providers/hetal-shah.jpg";
+import julieDenton from "@/assets/providers/julie-denton.jpg";
+import kyleeTate from "@/assets/providers/kylee-tate.jpg";
 import phoenixAerial from "@/assets/photos/phoenix-aerial.jpg";
 import pregnancyHands from "@/assets/photos/pregnancy-hands.jpg";
 import pregnancyTest from "@/assets/photos/pregnancy-test.jpg";
@@ -36,7 +38,7 @@ import valleyView from "@/assets/photos/valley-view.jpg";
  *   prenatalUltrasound, ultrasoundScan, ultrasoundScreen, heroUltrasound —
  *     Pexels (OB-GYN clinic series). heroUltrasound: a clinic name badge was
  *     retouched out.
- *   firstTrimester, doctorReview, ultrasoundCloseup — Pexels (same clinic series).
+ *   firstTrimester, ultrasoundCloseup — Pexels (same clinic series).
  *   pregnancyTest, teenSupport, receptionDesk, receptionTablet, bookingPhone — Pexels.
  *   heroPregnancy (mirrored), stethoscope, phoenixAerial, saguaroSunset,
  *   valleyView, superstition — Unsplash.
@@ -94,10 +96,6 @@ export const photos = {
     src: firstTrimester,
     alt: "An expectant mother resting her hands on her belly while a clinician takes notes",
   },
-  doctorReview: {
-    src: doctorReview,
-    alt: "A physician reviewing notes beside an ultrasound machine",
-  },
   ultrasoundCloseup: {
     src: ultrasoundCloseup,
     alt: "A close view of an abdominal ultrasound in progress",
@@ -133,3 +131,15 @@ export const photos = {
 } as const;
 
 export type PhotoKey = keyof typeof photos;
+
+/**
+ * The practice's own provider headshots, as shown on their Zocdoc profiles
+ * (140px originals supplied by the practice — small, so they are only ever
+ * shown at avatar sizes). Replace with full-resolution originals when
+ * available; the keys are referenced from `providers` in lib/site.ts.
+ */
+export const providerPhotos = {
+  hetalShah,
+  julieDenton,
+  kyleeTate,
+} as const;
