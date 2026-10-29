@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminRoute, readJson } from "@/lib/api-helpers";
-import { deleteBooking, setBookingStatus } from "@/lib/repo";
+import { deleteBooking, setBookingStatus, SlotUnavailableError } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,18 @@ export const PATCH = adminRoute(async (request, ctx: Ctx) => {
     return NextResponse.json({ error: "Status must be confirmed or cancelled" }, { status: 400 });
   }
 
-  const booking = await setBookingStatus(id, body.status);
+  let booking;
+  try {
+    booking = await setBookingStatus(id, body.status);
+  } catch (error) {
+    if (error instanceof SlotUnavailableError) {
+      return NextResponse.json(
+        { error: "That time has been booked by someone else since — it can't be restored." },
+        { status: 409 },
+      );
+    }
+    throw error;
+  }
   if (!booking) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   return NextResponse.json({ booking });
 });

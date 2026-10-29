@@ -1,19 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { track } from "./track";
 
 /**
- * A link out to the practice's booking page, reporting a Lead event.
+ * Every "Book Now" on the site, reporting a Lead event on click.
  *
- * Worth being honest about what this measures: booking happens on zocdoc.com,
- * which is Zocdoc's domain and carries none of our instrumentation. So this
- * counts people who set off to book — not people who booked. Someone who lands
- * on Zocdoc and abandons looks identical here to someone who keeps the
- * appointment. Unless Zocdoc provides a pixel or conversion callback, real
- * bookings have to be counted from Zocdoc's own reports, not here.
+ * Lead counts people who set off to book. The booking itself is counted
+ * separately as a Schedule event, fired only when /api/bookings confirms it
+ * (see BookingFlowModal) — so Lead is intent and Schedule is the real thing.
  *
- * The link opens in a new tab, so the pixel request is not racing a page
- * unload — no sendBeacon gymnastics needed.
+ * Our own booking page is a client-side navigation: the app stays loaded, so
+ * the pixel call is not racing a page unload. An outside booking site (if the
+ * booking URL is ever pointed at one again) opens in a new tab for the same
+ * reason.
  */
 export default function BookLink({
   href,
@@ -26,6 +26,14 @@ export default function BookLink({
   children: React.ReactNode;
   ariaLabel?: string;
 }) {
+  if (href.startsWith("/")) {
+    return (
+      <Link href={href} className={className} aria-label={ariaLabel} onClick={() => track("Lead")}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
     <a
       href={href}

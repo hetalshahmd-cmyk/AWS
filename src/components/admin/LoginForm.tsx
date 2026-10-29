@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BTN_PRIMARY, FIELD, LABEL, Notice } from "./ui";
+import { PasswordInput } from "@/components/form-fields";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -28,7 +29,8 @@ export default function LoginForm() {
         setError(data.error ?? "Could not sign in");
         return;
       }
-      router.replace("/admin");
+      // Doctors land on their own appointments; admins on the dashboard.
+      router.replace(data.admin?.role === "provider" ? "/admin/doctor" : "/admin");
       router.refresh();
     } catch {
       setError("Could not reach the server");
@@ -59,9 +61,8 @@ export default function LoginForm() {
         <label className={LABEL} htmlFor="password">
           Password
         </label>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           autoComplete="current-password"
           required
           value={password}

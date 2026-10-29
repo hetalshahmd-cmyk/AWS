@@ -22,35 +22,127 @@ export const practice = {
   ],
 } as const;
 
-/** Grouped exactly like the visit-reason dropdown on the booking flow. */
+/**
+ * Every visit reason, named exactly as on the practice's Zocdoc listings
+ * (checked Oct 6, 2026). `popular` is the first group of the dropdown.
+ */
 export const visitReasons = {
   popular: [
+    "Annual Pap Smear / GYN Exam",
+    "Birth Control / Contraception",
+    "Gynecology Consultation",
+    "New Patient Visit",
     "OB-GYN Consultation",
-    "OB-GYN Follow Up",
-    "Pregnancy Test",
-    "Prenatal Care",
-    "Ultrasound",
   ],
   all: [
+    "Abnormal Pap Test",
+    "Breast Pain",
     "Confirmation of Pregnancy",
+    "Female Infertility",
+    "Fertility Awareness / Natural Family Planning",
     "First Trimester Screening",
+    "Genetic Counseling / Pregnancy Screening",
+    "IUD Insertion",
+    "IUD Removal",
     "Missed Periods",
+    "OB Consultation",
+    "OB-GYN Follow Up",
+    "Pre-conception Counseling",
+    "Pregnancy Follow Up",
+    "Pregnancy Test",
+    "Prenatal Care",
     "Prenatal Care - First Trimester",
+    "Prenatal Care - Second Trimester",
     "Recurrent Pregnancy Loss",
-    "Annual Well-Woman Exam",
-    "Birth Control Consultation",
-    "IUD Insertion or Removal",
-    "Menopause Consultation",
-    "Pap Smear",
-    "Pelvic Pain",
-    "Infertility Consultation",
-    "Postpartum Visit",
-    "STD Testing",
-    "Vaginal Discharge or Itching",
+    "Sexually Transmitted Infection (STI) Testing",
+    "Ultrasound",
+    "Ultrasound Scan - Abdominal / Pelvic",
+    "Unwanted Pregnancy",
+    "Vaginal Discharge / Infection",
+    "Weight Loss Consultation",
+    "Weight Loss Follow Up",
+    "Weight Management",
   ],
 } as const;
 
-export const defaultVisitReason = visitReasons.popular[0];
+export const ALL_VISIT_REASONS: readonly string[] = [...visitReasons.popular, ...visitReasons.all];
+
+/**
+ * Each provider's own list, in the order their Zocdoc booking form shows it —
+ * the first five are that provider's "popular" group. Admin → Appointment
+ * slots → Visit reasons can change these; until it does, these apply.
+ */
+export const zocdocReasons: Record<string, readonly string[]> = {
+  denton: [
+    "Annual Pap Smear / GYN Exam",
+    "Birth Control / Contraception",
+    "Gynecology Consultation",
+    "New Patient Visit",
+    "OB-GYN Consultation",
+    "Confirmation of Pregnancy",
+    "First Trimester Screening",
+    "Missed Periods",
+    "OB Consultation",
+    "OB-GYN Follow Up",
+    "Pre-conception Counseling",
+    "Pregnancy Follow Up",
+    "Pregnancy Test",
+    "Prenatal Care",
+    "Prenatal Care - First Trimester",
+    "Prenatal Care - Second Trimester",
+    "Sexually Transmitted Infection (STI) Testing",
+    "Ultrasound",
+    "Vaginal Discharge / Infection",
+  ],
+  tate: [
+    "Annual Pap Smear / GYN Exam",
+    "Birth Control / Contraception",
+    "OB-GYN Consultation",
+    "OB-GYN Follow Up",
+    "Vaginal Discharge / Infection",
+    "Breast Pain",
+    "Confirmation of Pregnancy",
+    "First Trimester Screening",
+    "Missed Periods",
+    "Pregnancy Test",
+    "Prenatal Care - First Trimester",
+    "Ultrasound",
+  ],
+  shah: [
+    "Birth Control / Contraception",
+    "Gynecology Consultation",
+    "New Patient Visit",
+    "OB-GYN Consultation",
+    "Weight Loss Consultation",
+    "Abnormal Pap Test",
+    "Confirmation of Pregnancy",
+    "Female Infertility",
+    "Fertility Awareness / Natural Family Planning",
+    "First Trimester Screening",
+    "Genetic Counseling / Pregnancy Screening",
+    "IUD Insertion",
+    "IUD Removal",
+    "Missed Periods",
+    "OB-GYN Follow Up",
+    "Pregnancy Test",
+    "Prenatal Care - First Trimester",
+    "Recurrent Pregnancy Loss",
+    "Ultrasound",
+    "Ultrasound Scan - Abdominal / Pelvic",
+    "Unwanted Pregnancy",
+    "Vaginal Discharge / Infection",
+    "Weight Loss Follow Up",
+    "Weight Management",
+  ],
+};
+
+export const defaultVisitReason = "OB-GYN Consultation";
+
+/** The reason to start a provider's form on: the current one if they take it. */
+export function reasonFor(options: readonly string[], current: string): string {
+  if (options.includes(current)) return current;
+  return options.includes(defaultVisitReason) ? defaultVisitReason : (options[0] ?? current);
+}
 
 export const highlights = [
   {
@@ -158,12 +250,3 @@ export function plansFor(carrier: string): string[] {
   return CARRIER_PLANS[carrier] ?? DEFAULT_PLANS;
 }
 
-export const officeHours = [
-  { day: "Monday", hours: "8:00 am – 5:00 pm" },
-  { day: "Tuesday", hours: "8:00 am – 5:00 pm" },
-  { day: "Wednesday", hours: "8:00 am – 5:00 pm" },
-  { day: "Thursday", hours: "8:00 am – 5:00 pm" },
-  { day: "Friday", hours: "8:00 am – 2:00 pm" },
-  { day: "Saturday", hours: "Closed" },
-  { day: "Sunday", hours: "Closed" },
-];

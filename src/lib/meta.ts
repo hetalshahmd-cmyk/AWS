@@ -9,8 +9,8 @@
  *     booked at an OB-GYN is health-derived under Meta's Business Tools Terms
  *     §1.h. Events carry the fact that *something* happened and nothing else.
  *
- *  2. Nothing is sent unless the visitor accepted advertising cookies. That is
- *     the promise made on /privacy, and this is where it is kept.
+ *  2. Nothing is sent unless the visitor allowed advertising cookies ("Allow"
+ *     on the notice). That is the promise made on /privacy, kept here.
  *
  * Server-side delivery is not a way around either rule — a data source that
  * Meta restricts discards CAPI events the same as browser ones. Its value is
@@ -50,9 +50,33 @@ function readCookies(request: Request): Record<string, string> {
   for (const part of header.split(";")) {
     const eq = part.indexOf("=");
     if (eq < 1) continue;
-    out[part.slice(0, eq).trim()] = decodeURIComponent(part.slice(eq + 1).trim());
+    const raw = part.slice(eq + 1).trim();
+    try {
+      out[part.slice(0, eq).trim()] = decodeURIComponent(raw);
+    } catch {
+      // A malformed cookie must never fail a booking or a sign-up.
+      out[part.slice(0, eq).trim()] = raw;
+    }
   }
   return out;
+}
+
+/**
+ * The page an event came from, safe to give Meta: origin and path only — no
+ * query string or hash, which can carry a provider, an office or a signed
+ * appointment link — and just the home page for anything private.
+ */
+export function cleanSourceUrl(raw: string | null | undefined): string | undefined {
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw);
+    if (/^\/(appointment|my-bookings|admin|login|register)(\/|$)/.test(url.pathname)) {
+      return `${url.origin}/`;
+    }
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return undefined;
+  }
 }
 
 function clientIp(request: Request): string | undefined {
@@ -62,10 +86,8 @@ function clientIp(request: Request): string | undefined {
 }
 
 /**
- * Measurement runs unless the visitor opted out. This must agree with the
- * browser notice in components/analytics — if the server demanded an explicit
- * "granted" it would silently drop the server half of every event for the
- * majority who never touch the notice at all.
+ * Opt-in: only after the visitor chose "Allow". Must agree with the browser
+ * notice in components/analytics, which loads the pixel on the same rule.
  *
  * Global Privacy Control and Do Not Track are honoured here as well as in the
  * browser, because a server event does not pass through the pixel.
@@ -73,13 +95,13 @@ function clientIp(request: Request): string | undefined {
 export function adTrackingAllowed(request: Request): boolean {
   if (request.headers.get("sec-gpc") === "1") return false;
   if (request.headers.get("dnt") === "1") return false;
-  return readCookies(request)[CONSENT_COOKIE] !== "denied";
+  return readCookies(request)[CONSENT_COOKIE] === "granted";
 }
 
 type SendOptions = {
   /** Must match the eventID used by the browser pixel, or Meta counts it twice. */
   eventId: string;
-  /** The page the visitor was on. Never build this from a service or reason. */
+  /** The page the visitor was on (e.g. the Referer). Reduced by cleanSourceUrl. */
   sourceUrl?: string;
 };
 
@@ -115,7 +137,8 @@ export async function sendServerEvent(
         event_time: Math.floor(Date.now() / 1000),
         event_id: eventId,
         action_source: "website",
-        ...(sourceUrl ? { event_source_url: sourceUrl } : {}),
+        // Cleaned here, whatever the caller passed — see cleanSourceUrl.
+        ...(cleanSourceUrl(sourceUrl) ? { event_source_url: cleanSourceUrl(sourceUrl) } : {}),
         user_data: userData,
         // Limited Data Use. 0/0 lets Meta geolocate and apply the right state
         // rules — the site serves visitors well beyond Arizona.

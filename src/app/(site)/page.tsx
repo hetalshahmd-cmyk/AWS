@@ -1,3 +1,4 @@
+import { getProviders } from "@/lib/providers";
 import type { Metadata } from "next";
 import Link from "next/link";
 import HeroCarousel, { type HeroSlide } from "@/components/site/HeroCarousel";
@@ -19,56 +20,47 @@ import {
   SectionHead,
 } from "@/components/site/ui";
 import { photos } from "@/lib/photos";
-import { heroChips, providerCreds, providers, quickLinks, services, site } from "@/lib/site";
+import { loadSiteContent } from "@/lib/repo";
+import { heroChips, providerCreds, quickLinks, site } from "@/lib/site";
+import { DEFAULT_SITE_CONTENT } from "@/lib/site-content";
+import { resolveImage } from "@/lib/site-images";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-/** Captions reuse the service names and descriptions already on the site. */
-const serviceByTitle = (title: string) => {
-  const service = services.find((item) => item.title === title);
-  if (!service) throw new Error(`Unknown service: ${title}`);
-  return { title: service.title, body: service.body };
-};
-
-const SLIDES: HeroSlide[] = [
-  {
-    image: photos.heroConsultation.src,
-    alt: photos.heroConsultation.alt,
-    focus: { desktop: "50% 40%", mobile: "62% 50%" },
-    caption: serviceByTitle("Prenatal Care"),
-  },
-  {
-    image: photos.heroUltrasound.src,
-    alt: photos.heroUltrasound.alt,
-    focus: { desktop: "50% 35%", mobile: "66% 40%" },
-    caption: serviceByTitle("Ultrasound"),
-  },
-  {
-    image: photos.heroPregnancy.src,
-    alt: photos.heroPregnancy.alt,
-    focus: { desktop: "50% 50%", mobile: "64% 50%" },
-    caption: serviceByTitle("First-Trimester Care"),
-  },
-];
-
-export default function HomePage() {
+export default async function HomePage() {
+  // Edited in Admin → Site content.
+  const { hero } = await loadSiteContent().catch(() => DEFAULT_SITE_CONTENT);
+  const slides: HeroSlide[] = hero.slides.map((slide) => {
+    const image = resolveImage(slide.image);
+    return {
+      image: image.src,
+      alt: image.alt,
+      focus: { desktop: slide.image.position, mobile: slide.mobilePosition },
+      caption: { title: slide.title, body: slide.body },
+    };
+  });
   return (
     <>
       {/* ------------------------------------------------------------ hero -- */}
-      <HeroCarousel slides={SLIDES}>
-        <Eyebrow className="text-wine min-[900px]:text-white/85 [&>span]:bg-wine/60 min-[900px]:[&>span]:bg-white/60">
-          Board-Certified OB-GYN · Phoenix &amp; Glendale, AZ
-        </Eyebrow>
+      <HeroCarousel slides={slides}>
+        {hero.eyebrow && (
+          <Eyebrow className="text-wine min-[900px]:text-white/85 [&>span]:bg-wine/60 min-[900px]:[&>span]:bg-white/60">
+            {hero.eyebrow}
+          </Eyebrow>
+        )}
         <h1 className="mt-5 font-display text-[clamp(2.5rem,6vw,4.75rem)] font-normal leading-[1.02] tracking-[-0.025em]">
-          Women&apos;s health &amp; pregnancy care,{" "}
-          <em className="font-normal italic text-wine min-[900px]:text-[#f3d7dd]">
-            the same day you call.
-          </em>
+          {hero.title}
+          {hero.emphasis && (
+            <>
+              {" "}
+              <em className="font-normal italic text-wine min-[900px]:text-[#f3d7dd]">{hero.emphasis}</em>
+            </>
+          )}
         </h1>
         <p className="mt-6 max-w-[46ch] text-[clamp(1.05rem,1.5vw,1.2rem)] leading-relaxed text-plum-soft min-[900px]:text-white/85">
-          {site.description}
+          {hero.body}
         </p>
         <div className="mt-9 flex flex-wrap gap-3 max-[480px]:flex-col">
           <BookButton size="lg" />
@@ -193,7 +185,7 @@ export default function HomePage() {
                 Accepting new patients
               </p>
               <ul className="mt-4 space-y-3">
-                {providers.map((provider) => (
+                {getProviders().map((provider) => (
                   <li key={provider.name} className="flex items-center gap-3">
                     <ProviderAvatar provider={provider} size="sm" />
                     <div className="min-w-0">
@@ -201,7 +193,11 @@ export default function HomePage() {
                         {provider.name}
                       </p>
                       <p className="truncate text-[0.82rem] text-plum-soft">{provider.cred}</p>
-                      <ZocdocReviews count={provider.zocdocReviews} className="mt-0.5" />
+                      <ZocdocReviews
+                        count={provider.zocdocReviews}
+                        rating={provider.zocdocRating}
+                        className="mt-0.5"
+                      />
                     </div>
                   </li>
                 ))}

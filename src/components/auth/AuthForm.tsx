@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "./session-context";
+import { PasswordInput } from "@/components/form-fields";
 
 const FIELD =
   "focus-ring min-h-12 w-full rounded-xl border border-mist bg-white px-4 py-3 text-[16px] transition-colors placeholder:text-plum-soft/70 hover:border-plum/30 focus-visible:border-wine";
@@ -80,9 +81,8 @@ export default function AuthForm({ next }: { next: string }) {
         <label className={LABEL} htmlFor="password">
           Password
         </label>
-        <input
+        <PasswordInput
           id="password"
-          type="password"
           required
           autoComplete="current-password"
           value={form.password}

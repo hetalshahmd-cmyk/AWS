@@ -4,10 +4,19 @@ export const site = {
   phone: "(623) 846-7597",
   phoneHref: "tel:+16238467597",
   /**
-   * Where every "Book Now" CTA sends people. Currently the practice's Zocdoc
-   * page — set this back to "/book" to use the built-in booking flow again.
+   * Where every "Book Now" CTA sends people: the provider cards on the
+   * Providers page, where each provider's Book opens the booking form in
+   * place. `/about#book-tate` (or `#book-tate-arrowhead`) opens it for Kylee
+   * straight away.
    */
-  bookingUrl: "https://www.zocdoc.com/booking-link/practice/arizona-womens-specialists-180158",
+  bookCta: "/about#providers",
+  /**
+   * The stand-alone booking page — still used for "Reschedule" links, which
+   * carry the appointment being moved. The practice's Zocdoc page, if it is
+   * ever needed again:
+   * https://www.zocdoc.com/booking-link/practice/arizona-womens-specialists-180158
+   */
+  bookingUrl: "/book",
   announce: {
     strong: "FREE pregnancy test",
     rest: "Walk in today · Phoenix & Glendale",
@@ -171,40 +180,177 @@ export const prices = [
 ];
 
 /**
- * Names, titles and review counts match each provider's Zocdoc listing.
- * `photo` keys into providerPhotos (lib/photos.ts); `zocdocReviews` is the
- * count Zocdoc shows, or null where it shows none.
+ * Each provider as their Zocdoc listing shows them (checked Oct 6, 2026):
+ * name, title, rating, review count, education, certification, NPI and the
+ * visits patients book most. Ratings and counts change — re-check now and then.
+ * Dr. Shah's listing has no reviews yet, so it shows no rating.
+ *
+ * `ecwUrl` is the provider's eClinicalWorks / healow booking page, behind
+ * the "eCW" button beside "Zocdoc" in their profile. While it is null the
+ * button shows the office phone instead (no public healow page was found).
+ *
+ * `id` is what slots and bookings store — never change it once bookings exist.
+ * `photo` keys into providerPhotos (lib/photos.ts).
  */
-export const providers = [
+/**
+ * The starting list only: providers now live in MongoDB and are edited from
+ * Admin → Doctors (see lib/providers.ts). This seeds an empty collection.
+ */
+export const seedProviders = [
   {
+    id: "shah",
     initials: "HS",
     photo: "hetalShah",
     name: "Dr. Hetalkumar Shah, MD",
     cred: "Gynecologist",
     languages: ["English", "Hindi", "Spanish"],
+    zocdocRating: null,
     zocdocReviews: null,
+    zocdocUrl: "https://www.zocdoc.com/doctor/hetalkumar-shah-md-808675",
+    ecwUrl: null as string | null,
+    npi: "1750363255",
+    about: [
+      "Dr. Hetalkumar (Hetal) Shah is an OB-GYN at Arizona Women's Specialists, caring for women at every stage — from first visits and pregnancy to menopause.",
+      "He earned his medical degree at the University of Arizona in Tucson and completed his residency at Banner – University Medical Center Phoenix. He is certified by the American Board of Obstetrics and Gynecology.",
+      "In each visit he listens first, explains the condition clearly, and builds a treatment plan around the patient's own needs, goals and preferences.",
+    ],
+    education: [
+      "University of Arizona, Tucson — Doctor of Medicine (MD)",
+      "Banner – University Medical Center Phoenix — Residency",
+    ],
+    certifications: ["American Board of Obstetrics and Gynecology"],
+    focus: [
+      "Birth control",
+      "Pregnancy confirmation",
+      "Gynecology consultation",
+      "Natural family planning",
+      "Genetic counseling / pregnancy screening",
+      "Weight loss consultation",
+    ],
     cta: "Book with Dr. Shah",
     avatar: "from-[#9C3E55] to-[#5C1E2D]",
   },
   {
+    id: "denton",
     initials: "JD",
     photo: "julieDenton",
     name: "Julie Denton, NP",
     cred: "Nurse Practitioner (OB-GYN)",
     languages: ["English", "Spanish"],
+    zocdocRating: 5.0,
     zocdocReviews: 6,
+    zocdocUrl: "https://www.zocdoc.com/doctor/julie-denton-np-808676",
+    ecwUrl: null as string | null,
+    npi: "1942679188",
+    about: [
+      "Julie Denton is an experienced family nurse practitioner who sees patients at Arizona Women's Specialists in Phoenix and Glendale. She speaks English and Spanish.",
+      "She explains each patient's condition clearly and builds a treatment plan around them — prescriptions when needed, plus practical lifestyle, exercise and diet advice. She puts preventive care first, schedules follow-ups and refers to specialists when that's the right next step.",
+    ],
+    education: [
+      "Walden University — Master's in Nursing",
+      "University of Phoenix — Bachelor's degree",
+    ],
+    certifications: [],
+    focus: [
+      "Annual Pap smear / GYN exam",
+      "Birth control",
+      "Pregnancy confirmation",
+      "Prenatal care",
+      "Ultrasound",
+      "STI testing",
+    ],
     cta: "Book with Julie",
     avatar: "from-[#6E9E95] to-[#4E7B73]",
   },
   {
+    id: "tate",
     initials: "KT",
     photo: "kyleeTate",
     name: "Kylee Tate, PA-C",
     cred: "Physician Assistant (OB-GYN)",
     languages: ["English", "Spanish"],
+    zocdocRating: 4.93,
     zocdocReviews: 15,
+    zocdocUrl: "https://www.zocdoc.com/doctor/kylee-tate-pa-c-808720",
+    ecwUrl: null as string | null,
+    npi: "1306557913",
+    about: [
+      "Kylee Tate is a physician assistant specializing in OB-GYN, seeing patients at Arizona Women's Specialists in Phoenix and Glendale. She speaks English and Spanish.",
+      "She supports patients through routine gynecologic care, preventive screenings and reproductive health visits, and is known for taking the time to explain care options clearly in a supportive, respectful setting.",
+    ],
+    education: [
+      "North Greenville University — Master's in Physician Assistant Studies",
+      "Saint Louis University — Bachelor's degree",
+    ],
+    certifications: ["National Commission on Certification of Physician Assistants"],
+    focus: [
+      "Annual Pap smear / GYN exam",
+      "Birth control",
+      "Breast pain",
+      "Pregnancy confirmation",
+      "Early prenatal care",
+      "Vaginal discharge / infection",
+    ],
     cta: "Book with Kylee",
     avatar: "from-[#7C2C3E] to-[#4E7B73]",
+  },
+  {
+    // Zocdoc profile + NPI registry (practice address: 6370 W Union Hills Dr).
+    // No headshot supplied yet — upload one in Admin → Doctors.
+    id: "erickson",
+    initials: "ME",
+    photo: null,
+    name: "Dr. Marvin Erickson, MD",
+    cred: "OB-GYN",
+    languages: ["English", "Spanish"],
+    zocdocRating: 4.75,
+    zocdocReviews: 202,
+    zocdocUrl: "https://www.zocdoc.com/doctor/marvin-erickson-md-243428",
+    ecwUrl: null as string | null,
+    npi: "1679569776",
+    about: [
+      "Dr. Marvin Erickson is an obstetrician-gynecologist with about 30 years of experience, seeing patients at Arizona Women's Specialists in Glendale. He speaks English and Spanish.",
+      "He cares for women through pregnancy — including high-risk pregnancies and complications such as preeclampsia and gestational diabetes — as well as everyday gynecologic care.",
+    ],
+    education: [
+      "University of Arizona College of Medicine — Doctor of Medicine (MD), 1996",
+      "Maricopa Integrated Health System — Residency in Obstetrics & Gynecology",
+    ],
+    certifications: [],
+    focus: [
+      "Prenatal care",
+      "High-risk pregnancy",
+      "Pregnancy complications",
+      "Gynecology consultation",
+    ],
+    cta: "Book with Dr. Erickson",
+    avatar: "from-[#4E7B73] to-[#2F4F48]",
+  },
+  {
+    // Zocdoc profile + NPI registry (practice address: 6370 W Union Hills Dr).
+    id: "cook",
+    initials: "MC",
+    photo: null,
+    name: "Dr. Mitchell Cook, DO",
+    cred: "OB-GYN",
+    languages: ["English"],
+    zocdocRating: 5.0,
+    zocdocReviews: 2,
+    zocdocUrl: "https://www.zocdoc.com/doctor/mitchell-cook-do-829459",
+    ecwUrl: null as string | null,
+    npi: "1245973601",
+    about: [
+      "Dr. Mitchell Cook is an obstetrician-gynecologist seeing patients at Arizona Women's Specialists in Glendale. He is originally from a small town in Alberta, Canada.",
+      "He earned his medical degree at Midwestern University–Arizona College of Osteopathic Medicine in Glendale and completed his residency in Obstetrics and Gynecology at the University of Tennessee Health Science Center in Memphis.",
+    ],
+    education: [
+      "Midwestern University – Arizona College of Osteopathic Medicine — Doctor of Osteopathic Medicine (DO)",
+      "University of Tennessee Health Science Center, Memphis — Residency in Obstetrics & Gynecology",
+    ],
+    certifications: [],
+    focus: [],
+    cta: "Book with Dr. Cook",
+    avatar: "from-[#8A6A9E] to-[#5C3E70]",
   },
 ] as const;
 
@@ -215,25 +361,29 @@ export const providerCreds = [
   "Compassionate & confidential",
 ];
 
+/**
+ * `id` is what slots and bookings store; `area` is the name the front desk
+ * uses (Maryvale, Arrowhead). Never change an `id` once bookings exist.
+ */
 export const locations = [
   {
+    id: "maryvale",
+    area: "Maryvale",
     name: "Phoenix Office",
     address: ["4700 N 51st Ave, Suite 5", "Phoenix, AZ 85031"],
     maps:
       "https://www.google.com/maps/search/?api=1&query=4700+N+51st+Ave+Suite+5+Phoenix+AZ+85031",
   },
   {
+    id: "arrowhead",
+    area: "Arrowhead",
     name: "Glendale Office",
     address: ["6370 W Union Hills Dr", "Glendale, AZ 85308"],
     maps:
       "https://www.google.com/maps/search/?api=1&query=6370+W+Union+Hills+Dr+Glendale+AZ+85308",
   },
-];
+] as const;
 
-export const officeHours = [
-  { days: "Mon – Fri", hours: "8:00 AM – 5:00 PM" },
-  { days: "Sat – Sun", hours: "Closed" },
-];
 
 export const insurancePills = [
   "AHCCCS",

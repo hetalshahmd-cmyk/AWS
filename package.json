@@ -8,13 +8,21 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "node scripts/seed.mjs",
+    "seed:demo": "node scripts/seed-demo.mjs",
+    "create-user": "node scripts/create-user.mjs",
     "mail:check": "node scripts/mail-check.mjs",
-    "doctor": "node scripts/doctor.mjs"
+    "doctor": "node scripts/doctor.mjs",
+    "test": "node --import tsx --test \"tests/unit/*.test.ts\"",
+    "test:e2e": "node tests/e2e/run.mjs",
+    "typecheck": "tsc --noEmit",
+    "backup": "node scripts/backup.mjs",
+    "screenshots": "node scripts/screenshots.mjs",
+    "restore": "node scripts/restore.mjs"
   },
   "dependencies": {
     "mongodb": "^7.5.0",
-    "next": "16.3.1",
-    "nodemailer": "^9.0.5",
+    "next": "^16.3.8",
+    "nodemailer": "^10.0.15",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -25,8 +33,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.1",
+    "eslint-config-next": "^16.3.8",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

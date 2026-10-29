@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/auth";
 import type { Metadata } from "next";
 import UsersTable from "@/components/admin/UsersTable";
 import { listUserRows } from "@/lib/repo";
@@ -6,6 +7,7 @@ export const metadata: Metadata = { title: "Patients — Admin" };
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
+  await requireAdminPage();
   const users = await listUserRows();
 
   return (

@@ -1,24 +1,28 @@
 import Image from "next/image";
-import { photos, type PhotoKey } from "@/lib/photos";
-import { locations, officeHours, site } from "@/lib/site";
+import { getOfficeHours, loadSiteContent } from "@/lib/repo";
+import { hoursEmpty } from "@/lib/scheduling";
+import { DEFAULT_SITE_CONTENT, officePhone } from "@/lib/site-content";
+import { resolveImage } from "@/lib/site-images";
 import Ico from "./Ico";
+import { weekLines } from "./WeekHours";
 import { BookButton, Button } from "./ui";
 
 /**
- * Arizona scenery for each card's header, in the order of `locations`. These
- * are landscapes of the area, not photographs of the offices themselves.
+ * The two offices as cards: picture, address, this week's hours (from the
+ * week plan), call, directions, book. Names, addresses, phone and picture are
+ * edited in Admin → Site content.
  */
-const HEADER: { key: PhotoKey; position: string }[] = [
-  { key: "phoenixAerial", position: "50% 55%" },
-  { key: "valleyView", position: "50% 70%" },
-];
-
-/** The two offices as cards: photo, address, hours, call, directions, book. */
-export default function Locations() {
+export default async function Locations() {
+  const [hours, content] = await Promise.all([
+    getOfficeHours(),
+    loadSiteContent().catch(() => DEFAULT_SITE_CONTENT),
+  ]);
+  const unknown = hoursEmpty(hours);
   return (
     <div className="grid gap-6 min-[860px]:grid-cols-2">
-      {locations.map((location, index) => {
-        const header = HEADER[index % HEADER.length];
+      {content.offices.map((location, index) => {
+        const header = resolveImage(location.image);
+        const phone = officePhone(location);
         return (
           <article
             key={location.name}
@@ -26,13 +30,14 @@ export default function Locations() {
           >
             <div className="relative h-52 overflow-hidden min-[860px]:h-60">
               <Image
-                src={photos[header.key].src}
-                alt={photos[header.key].alt}
+                src={header.src}
+                alt={header.alt}
                 fill
                 sizes="(min-width: 860px) 50vw, 100vw"
-                placeholder="blur"
+                placeholder={typeof header.src === "string" ? "empty" : "blur"}
+                unoptimized={typeof header.src === "string"}
                 className="object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(.22,1,.36,1)] group-hover:scale-[1.05]"
-                style={{ objectPosition: header.position }}
+                style={{ objectPosition: location.image.position }}
               />
               <span
                 aria-hidden="true"
@@ -56,21 +61,36 @@ export default function Locations() {
                 {location.address[1]}
               </address>
 
-              <dl className="mt-6 grid grid-cols-2 gap-3">
-                {officeHours.map((row) => (
-                  <div key={row.days} className="rounded-2xl bg-ivory px-4 py-3">
-                    <dt className="text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-stone">
-                      {row.days}
-                    </dt>
-                    <dd className="mt-1 font-medium text-plum">{row.hours}</dd>
-                  </div>
-                ))}
-              </dl>
+              {unknown || !hours ? (
+                <p className="mt-6 rounded-2xl bg-ivory px-4 py-3 text-plum-soft">
+                  Call us for this week&apos;s times — {phone.label}.
+                </p>
+              ) : (
+                <>
+                  <p className="mt-6 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-stone">
+                    This week
+                  </p>
+                  <dl className="mt-2 grid grid-cols-2 gap-3">
+                    {weekLines(hours[location.id]).map((row) => (
+                      <div key={row.days} className="rounded-2xl bg-ivory px-4 py-3">
+                        <dt className="text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-stone">
+                          {row.days}
+                        </dt>
+                        <dd
+                          className={`mt-1 font-medium ${row.hours ? "text-plum" : "text-stone"}`}
+                        >
+                          {row.hours ?? "Closed"}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </>
+              )}
 
               <div className="mt-8 flex flex-wrap gap-2.5 min-[860px]:mt-auto min-[860px]:pt-8">
                 <BookButton size="sm" />
                 <Button
-                  href={site.phoneHref}
+                  href={phone.href}
                   variant="line"
                   size="sm"
                   icon="phone"

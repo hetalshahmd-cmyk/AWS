@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { carriers, plansFor, type Carrier } from "@/lib/practice";
 import { useBooking } from "./booking-context";
+import { useLang } from "./lang-context";
 import { CheckIcon, ChevronLeft, CloseIcon, SearchIcon } from "./icons";
 
 export default function InsuranceModal({ onClose }: { onClose: () => void }) {
   const { insurance, setInsurance } = useBooking();
+  const { tr } = useLang();
   const [query, setQuery] = useState("");
   const [carrier, setCarrier] = useState<Carrier | null>(null);
 
@@ -40,7 +42,7 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/50 p-0 sm:items-center sm:p-6"
+      className="fixed inset-0 z-[95] flex items-end justify-center bg-ink/50 p-0 sm:items-center sm:p-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -48,7 +50,7 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={carrier ? `Select ${carrier.name} plan` : "Select insurance"}
+        aria-label={carrier ? tr.insSelectPlanFor(carrier.name) : tr.insSelect}
         className="flex max-h-[92vh] w-full max-w-xl flex-col rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl"
       >
         <div className="flex items-start justify-between gap-4 px-6 pb-2 pt-6">
@@ -59,15 +61,15 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
               className="focus-ring flex items-center gap-1.5 text-[15px] font-semibold"
             >
               <ChevronLeft className="h-4 w-4" />
-              All insurance
+              {tr.insAll}
             </button>
           ) : (
-            <h2 className="text-[24px] font-bold tracking-tight">Select insurance</h2>
+            <h2 className="text-[24px] font-bold tracking-tight">{tr.insSelect}</h2>
           )}
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={tr.close}
             className="focus-ring -mr-1 -mt-1 rounded-full p-1.5 text-ink transition hover:bg-cream-deep"
           >
             <CloseIcon className="h-5 w-5" />
@@ -80,7 +82,7 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
               <CarrierLogo carrier={carrier} />
               <h3 className="text-[19px] font-bold tracking-tight">{carrier.name}</h3>
             </div>
-            <p className="mb-2 mt-3 text-[15px] font-semibold">Select your plan</p>
+            <p className="mb-2 mt-3 text-[15px] font-semibold">{tr.insSelectPlan}</p>
             <ul className="divide-y divide-line border-y border-line">
               {plansFor(carrier.name).map((plan) => {
                 const selected = insurance?.carrier === carrier.name && insurance.plan === plan;
@@ -102,7 +104,7 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
               })}
             </ul>
             <p className="mt-4 text-[13px] text-muted">
-              Not sure which plan you have? It is printed on the front of your insurance card.
+              {tr.insPlanHint}
             </p>
           </div>
         ) : (
@@ -114,8 +116,8 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
                   autoFocus
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search for insurance"
-                  aria-label="Search for insurance"
+                  placeholder={tr.insSearch}
+                  aria-label={tr.insSearch}
                   className="focus-ring w-full rounded-full border border-line-strong bg-white py-3 pl-12 pr-4 text-[16px] placeholder:text-muted"
                 />
               </div>
@@ -124,14 +126,14 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
             <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4">
               {matches.length === 0 && (
                 <p className="py-8 text-center text-[15px] text-muted">
-                  No carrier matches “{query}”.
+                  {tr.insNoMatch(query)}
                 </p>
               )}
 
               {popular.length > 0 && (
                 <>
                   <h3 className="pb-2 pt-1 text-[19px] font-bold tracking-tight">
-                    Popular carriers
+                    {tr.insPopular}
                   </h3>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {popular.map((item) => (
@@ -147,7 +149,7 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
               )}
 
               {groups.length > 0 && (
-                <h3 className="pb-1 pt-6 text-[19px] font-bold tracking-tight">All carriers</h3>
+                <h3 className="pb-1 pt-6 text-[19px] font-bold tracking-tight">{tr.insAllCarriers}</h3>
               )}
               {groups.map(([letter, items]) => (
                 <section key={letter}>
@@ -183,7 +185,7 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
                 }}
                 className="focus-ring text-[16px] font-medium link-underline"
               >
-                I&apos;m paying for myself
+                {tr.selfPay}
               </button>
             </div>
           </>

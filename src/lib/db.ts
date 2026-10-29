@@ -63,17 +63,28 @@ let indexesReady: Promise<void> | null = null;
 export function ensureIndexes(): Promise<void> {
   indexesReady ??= (async () => {
     const db = await getDb();
+
+    // Slots used to be unique per date + time across the whole practice, which
+    // stops two providers seeing patients at the same hour. The new index is
+    // unique per provider instead; drop the old one if this database has it.
+    await db
+      .collection("slots")
+      .dropIndex("date_1_time_1")
+      .catch(() => undefined);
+
     await Promise.all([
       db.collection("admins").createIndex({ email: 1 }, { unique: true }),
       db.collection("users").createIndex({ email: 1 }, { unique: true }),
       db.collection("bookings").createIndex({ userId: 1, date: -1 }),
       db.collection("bookings").createIndex({ "patient.email": 1 }),
-      db.collection("slots").createIndex({ date: 1, time: 1 }, { unique: true }),
+      db.collection("slots").createIndex({ date: 1, time: 1, providerId: 1 }, { unique: true }),
       db.collection("slots").createIndex({ date: 1, active: 1 }),
+      db.collection("slots").createIndex({ date: 1, officeId: 1, providerId: 1 }),
       db.collection("bookings").createIndex({ createdAt: -1 }),
       db.collection("bookings").createIndex({ date: 1, time: 1 }),
       db.collection("plans").createIndex({ order: 1 }),
       db.collection("email_otps").createIndex({ email: 1 }, { unique: true }),
+      db.collection("rate_limits").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
       // Mongo sweeps expired codes an hour after they lapse.
       db.collection("email_otps").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 3600 }),
     ]);

@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import Ico from "./Ico";
 
 export type HeroSlide = {
-  image: StaticImageData;
+  /** A built-in photo, or an upload's URL (Admin → Site content). */
+  image: StaticImageData | string;
   alt: string;
   /** Where to anchor the crop: desktop is landscape, phones are portrait. */
   focus: { desktop: string; mobile: string };
@@ -117,7 +118,7 @@ export default function HeroCarousel({
     <div className="flex items-center gap-2">
       {slides.map((slide, i) => (
         <button
-          key={slide.caption.title}
+          key={i}
           type="button"
           onClick={() => go(i)}
           aria-label={`Show slide ${i + 1}: ${slide.caption.title}`}
@@ -166,7 +167,7 @@ export default function HeroCarousel({
       >
         {slides.map((slide, i) => (
           <div
-            key={slide.caption.title}
+            key={i}
             role="group"
             aria-roledescription="slide"
             aria-label={`${i + 1} of ${count}: ${slide.caption.title}`}
@@ -182,7 +183,8 @@ export default function HeroCarousel({
                 alt={slide.alt}
                 fill
                 sizes="100vw"
-                placeholder="blur"
+                placeholder={typeof slide.image === "string" ? "empty" : "blur"}
+                unoptimized={typeof slide.image === "string"}
                 preload={i === 0}
                 className="object-cover [object-position:var(--focus-mobile)] min-[900px]:[object-position:var(--focus-desktop)]"
                 style={

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { newEventId, track } from "@/components/analytics/track";
 import { useSession } from "./session-context";
+import { PasswordInput } from "@/components/form-fields";
 
 const FIELD =
   "focus-ring min-h-12 w-full rounded-xl border border-mist bg-white px-4 py-3 text-[16px] transition-colors placeholder:text-plum-soft/70 hover:border-plum/30 focus-visible:border-wine";
@@ -68,8 +69,8 @@ export default function RegisterForm({ next }: { next: string }) {
         return;
       }
 
-      // No Lead here. Booking moved off-site to Zocdoc, so Lead is reserved for
-      // the Book Now click (see analytics/BookLink.tsx) and means exactly one
+      // No Lead here. Lead is reserved for the Book Now click (see
+      // analytics/BookLink.tsx) and means exactly one
       // thing: booking intent. Signing up is no longer part of booking.
 
       setStep("code");
@@ -271,10 +272,9 @@ export default function RegisterForm({ next }: { next: string }) {
             <label className={LABEL} htmlFor="password">
               Password
             </label>
-            <input
+            <PasswordInput
               id="password"
               ref={passwordRef}
-              type="password"
               required
               minLength={8}
               autoComplete="new-password"

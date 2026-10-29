@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { loadSiteContent } from "@/lib/repo";
 import { site } from "@/lib/site";
+import { DEFAULT_SITE_CONTENT } from "@/lib/site-content";
 import { Container, Eyebrow } from "@/components/site/ui";
 
 export const metadata: Metadata = {
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
  * it is the page the footer link points at. Keep both true if either changes.
  */
 
-const UPDATED = "October 2, 2026";
+const UPDATED = "October 5, 2026";
 
 /** Section titles, in order — they drive both the headings and the contents list. */
 const SECTIONS = [
@@ -72,7 +74,8 @@ function List({ items }: { items: React.ReactNode[] }) {
   );
 }
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const { offices } = await loadSiteContent().catch(() => DEFAULT_SITE_CONTENT);
   return (
     <>
       <header className="border-b border-mist bg-ivory">
@@ -119,14 +122,14 @@ export default function PrivacyPage() {
               We never send your health information — including your reason for visit, date of
               birth, sex, or insurance — to Facebook, Instagram, or any other advertising company.
             </strong>{" "}
-            Advertising cookies are on when you arrive; if you would rather we did not use them, you
-            can opt out in one click and the site works exactly the same.
+            Advertising cookies are off until you allow them; if you say no — or simply ignore the
+            question — nothing is loaded and the site works exactly the same.
           </P>
 
           <H>Who we are</H>
           <P>
-            {site.name} operates this website and the clinics at 4700 N 51st Ave, Ste 5, Phoenix, AZ
-            85031 and 6370 W Union Hills Dr, Glendale, AZ 85308. You can reach us on{" "}
+            {site.name} operates this website and the clinics at{" "}
+            {offices.map((office) => office.address.join(", ")).join(" and ")}. You can reach us on{" "}
             <a href={site.phoneHref} className="font-semibold text-wine link-underline">
               {site.phone}
             </a>{" "}
@@ -176,7 +179,7 @@ export default function PrivacyPage() {
           </P>
 
           <h3 className="mt-8 font-display text-[1.3rem] text-plum">
-            Advertising cookies — on unless you opt out
+            Advertising cookies — only if you allow them
           </h3>
           <P>
             We advertise our services on Facebook and Instagram. To understand whether those ads
@@ -203,10 +206,10 @@ export default function PrivacyPage() {
             ]}
           />
           <P>
-            <strong className="text-plum">These are on when you arrive.</strong> A notice at the
-            bottom of the page tells you so on your first visit and lets you opt out in one click.
-            If you opt out, the Meta script is not loaded, no advertising cookie is set, and nothing
-            is sent — on that visit or any later one. Your choice is remembered for six months.
+            <strong className="text-plum">These are off until you allow them.</strong> A notice at
+            the bottom of the page asks on your first visit. Until you choose &ldquo;Allow&rdquo;,
+            the Meta script is not loaded, no advertising cookie is set, and nothing is sent. Your
+            choice is remembered for six months.
           </P>
           <P>
             If your browser sends a Global Privacy Control or Do Not Track signal, we treat that as
@@ -215,29 +218,20 @@ export default function PrivacyPage() {
           </P>
 
           <h3 className="mt-8 font-display text-[1.3rem] text-plum">
-            Booking happens on another company&apos;s website
+            Booking happens on this website
           </h3>
           <P>
-            When you choose &ldquo;Book Now&rdquo;, we send you to zocdoc.com, the patient booking
-            service run by Zocdoc, Inc. that our office uses for its appointment calendar.
-            Anything you enter there is handled under{" "}
-            <a
-              href="https://www.zocdoc.com/about/privacypolicy/"
-              target="_blank"
-              rel="noreferrer"
-              className="font-semibold text-wine link-underline"
-            >
-              Zocdoc&apos;s privacy policy
-            </a>
-            , not this page. Our advertising cookies do not follow you there, and we do not receive
-            your appointment details back from them through this website.
+            When you choose &ldquo;Book Now&rdquo;, you book with us directly, on this website. The
+            details you enter are the ones listed under &ldquo;What we collect&rdquo; above; they
+            are stored by us and used by our office for your appointment.
           </P>
 
           <H>What we send to Meta — and what we never send</H>
           <P>
-            Unless you have opted out, we tell Meta that an anonymous visitor viewed a page, tapped
-            our phone number, or clicked through to book an appointment. That is the whole picture.
-            Meta is told that a booking was started — never what it is for.
+            Only if you have allowed it, we tell Meta that an anonymous visitor viewed a page, tapped
+            our phone number, chose to book, created an account, or completed a booking. That is
+            the whole picture. Meta is told that a booking happened — never what it is for, with
+            whom, or when.
           </P>
           <P className="font-semibold">We never send Meta:</P>
           <List
@@ -272,7 +266,7 @@ export default function PrivacyPage() {
           <H>Your choices</H>
           <List
             items={[
-              "Opt out on the notice at the bottom of the page, and nothing is loaded or sent.",
+              "Choose \u201cNo thanks\u201d (or just ignore the notice) and nothing is loaded or sent.",
               "Change your mind at any time by clearing this site's cookies in your browser, which brings the notice back.",
               "Turn on Global Privacy Control or Do Not Track in your browser — we honour both automatically, and you will not see the notice at all.",
               "Book by phone instead. Calling us involves no website tracking of any kind.",

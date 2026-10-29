@@ -1,10 +1,9 @@
 import Image from "next/image";
 import { providerPhotos } from "@/lib/photos";
-import type { providers } from "@/lib/site";
-
-type Provider = (typeof providers)[number];
+import type { Provider } from "@/lib/providers";
 
 const SIZES = {
+  xs: { box: "h-9 w-9 text-[0.8rem]", px: 36 },
   sm: { box: "h-14 w-14 text-[1.15rem]", px: 56 },
   md: { box: "h-24 w-24 text-[2rem]", px: 96 },
   lg: { box: "h-28 w-28 text-[2.4rem]", px: 112 },
@@ -22,7 +21,12 @@ export default function ProviderAvatar({
   size?: keyof typeof SIZES;
 }) {
   const { box, px } = SIZES[size];
-  const photo = provider.photo ? providerPhotos[provider.photo] : null;
+  // An uploaded headshot first, then a built-in one, else the monogram.
+  const photo =
+    provider.photoUrl ??
+    (provider.photo && provider.photo in providerPhotos
+      ? providerPhotos[provider.photo as keyof typeof providerPhotos]
+      : null);
 
   return (
     <span
@@ -36,6 +40,7 @@ export default function ProviderAvatar({
           width={px}
           height={px}
           sizes={`${px}px`}
+          unoptimized={typeof photo === "string"}
           className="h-full w-full object-cover"
         />
       ) : (

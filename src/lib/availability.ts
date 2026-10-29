@@ -60,10 +60,19 @@ export function formatLong(iso: string): string {
   return `${full}, ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
 }
 
+/** One bookable time, with who it is with and where. */
+export type DaySlot = {
+  id: string;
+  time: string;
+  /** Null only for slots created before scheduling by provider. */
+  providerId: string | null;
+  officeId: string | null;
+};
+
 /** What /api/availability returns, one entry per day in the window. */
 export type DayAvailability = {
   iso: string;
   weekday: string;
   monthDay: string;
-  slots: { id: string; time: string }[];
+  slots: DaySlot[];
 };

@@ -1,12 +1,21 @@
 /**
- * Seeds MongoDB: the admin account, the pricing plans and (optionally) slots.
+ * Seeds MongoDB: the admin account, the pricing plans and the indexes.
  *
- *   npm run seed
- *   npm run seed -- --email front@desk.com --password "s3cret pass" --name "Front desk"
- *   npm run seed -- --slots 14          # also create 14 days of weekday slots
+ *   npm run seed -- --password "a long, unique password"
+ *   npm run seed -- --email front@desk.com --password "…" --name "Front desk"
+ *   npm run seed -- --password "…" --doctors --doctor-password "…"   also one login per provider
  *
- * Re-running is safe: the admin's password is reset to the one given, plans are
- * only inserted when the collection is empty, and duplicate slots are skipped.
+ * There are no default passwords: every account gets the one you pass, at
+ * least 12 characters. Passwords are never printed.
+ *
+ * Provider logins use the same sign-in page (/admin/login) and only see their
+ * own appointments: shah@, denton@ and tate@arizonawomen.com.
+ *
+ * Appointment slots are not created here any more: every slot now belongs to
+ * a provider at an office, and they come from Admin → Weekly schedule.
+ *
+ * Re-running is safe: the admin's password is reset to the one given and plans
+ * are only inserted when the collection is empty.
  */
 import "./load-env.mjs";
 import { randomBytes, scrypt } from "node:crypto";
@@ -19,9 +28,35 @@ const scryptAsync = promisify(scrypt);
 
 const DEFAULT_ADMIN = {
   email: "admin@arizonawomen.com",
-  password: "Arizona@2026",
   name: "Arizona Women Specialists",
 };
+
+/** Passwords that were once documented as defaults — never accepted again. */
+const RETIRED = new Set(["arizona@2026", "doctor@2026", "demo@2026"]);
+
+/** Exits unless the password is long enough and not a retired default. */
+function requirePassword(value, flag) {
+  if (!value) {
+    console.error(`Give a password with ${flag} "…" (at least 12 characters). There is no default.`);
+    process.exit(1);
+  }
+  if (value.length < 12) {
+    console.error(`${flag}: use at least 12 characters.`);
+    process.exit(1);
+  }
+  if (RETIRED.has(value.toLowerCase())) {
+    console.error(`${flag}: that password was a published default — pick a new one.`);
+    process.exit(1);
+  }
+  return value;
+}
+
+/** One sign-in per provider. Ids match `providers` in src/lib/site.ts. */
+const DOCTORS = [
+  { providerId: "shah", email: "shah@arizonawomen.com", name: "Dr. Hetalkumar Shah, MD" },
+  { providerId: "denton", email: "denton@arizonawomen.com", name: "Julie Denton, NP" },
+  { providerId: "tate", email: "tate@arizonawomen.com", name: "Kylee Tate, PA-C" },
+];
 
 const PLANS = [
   { tag: "New Patient", tagIcon: "star", amount: "$100", title: "New Patient Visit", body: "Comprehensive initial consultation and exam." },
@@ -30,11 +65,6 @@ const PLANS = [
   { tag: "Birth Control", tagIcon: "shield", amount: "$50", title: "Depo Shot", body: "Contraceptive injection." },
   { tag: "Birth Control", tagIcon: "shield", amount: "$150", title: "IUD Insertion", body: "Mirena, Paragard, Liletta, Kyleena & more." },
   { tag: "Birth Control", tagIcon: "shield", amount: "$100", title: "IUD Removal", body: "All IUDs, Nexplanon & more." },
-];
-
-const SLOT_TIMES = [
-  "8:00 am", "8:45 am", "9:30 am", "10:15 am", "11:00 am", "11:45 am",
-  "1:00 pm", "1:45 pm", "2:30 pm", "3:15 pm", "4:00 pm", "4:45 pm",
 ];
 
 /* ---------------------------------------------------------------- utils -- */
@@ -46,7 +76,8 @@ function arg(name, fallback) {
 
 /** Same format src/lib/password.ts reads: scrypt$N$r$p$salt$hash, base64url. */
 async function hashPassword(password) {
-  const N = 16384;
+  // Kept in step with src/lib/password.ts.
+  const N = 131072;
   const r = 8;
   const p = 1;
   const salt = randomBytes(16);
@@ -54,22 +85,9 @@ async function hashPassword(password) {
     N,
     r,
     p,
-    maxmem: 64 * 1024 * 1024,
+    maxmem: 256 * 1024 * 1024,
   });
   return ["scrypt", N, r, p, salt.toString("base64url"), key.toString("base64url")].join("$");
-}
-
-function timeToMinutes(time) {
-  const [, h, m, suffix] = /^(\d{1,2}):(\d{2})\s*(am|pm)$/i.exec(time.trim());
-  let hours = Number(h) % 12;
-  if (suffix.toLowerCase() === "pm") hours += 12;
-  return hours * 60 + Number(m);
-}
-
-function isoAddDays(iso, days) {
-  const date = new Date(`${iso}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
 }
 
 /* ----------------------------------------------------------------- seed -- */
@@ -84,10 +102,15 @@ if (!uri) {
 
 const admin = {
   email: arg("email", DEFAULT_ADMIN.email).trim().toLowerCase(),
-  password: arg("password", DEFAULT_ADMIN.password),
+  password: requirePassword(arg("password", ""), "--password"),
   name: arg("name", DEFAULT_ADMIN.name),
 };
-const slotDays = Number(arg("slots", 0));
+if (arg("slots", 0)) {
+  console.warn(
+    "--slots is no longer supported: slots belong to a provider and an office now.\n" +
+      "Open them from Admin → Weekly schedule instead.",
+  );
+}
 
 const client = new MongoClient(uri, { serverSelectionTimeoutMS: 8000 });
 
@@ -101,7 +124,11 @@ try {
   await db.collection("users").createIndex({ email: 1 }, { unique: true });
   await db.collection("bookings").createIndex({ userId: 1, date: -1 });
   await db.collection("bookings").createIndex({ "patient.email": 1 });
-  await db.collection("slots").createIndex({ date: 1, time: 1 }, { unique: true });
+  // Unique per provider, not per practice — two providers can share an hour.
+  // Kept in step with ensureIndexes() in src/lib/db.ts.
+  await db.collection("slots").dropIndex("date_1_time_1").catch(() => undefined);
+  await db.collection("slots").createIndex({ date: 1, time: 1, providerId: 1 }, { unique: true });
+  await db.collection("slots").createIndex({ date: 1, officeId: 1, providerId: 1 });
   await db.collection("slots").createIndex({ date: 1, active: 1 });
   await db.collection("bookings").createIndex({ createdAt: -1 });
   await db.collection("bookings").createIndex({ date: 1, time: 1 });
@@ -114,7 +141,8 @@ try {
   await db.collection("admins").updateOne(
     { email: admin.email },
     {
-      $set: { name: admin.name, passwordHash },
+      // This command makes a full admin, even if the email was a provider's.
+      $set: { name: admin.name, passwordHash, role: "admin", providerId: null },
       $setOnInsert: { createdAt: new Date(), lastLoginAt: null },
     },
     { upsert: true },
@@ -124,7 +152,23 @@ try {
       ? `Admin ${admin.email} already existed — password reset.`
       : `Admin created: ${admin.email}`,
   );
-  console.log(`  password: ${admin.password}`);
+
+  // Provider logins — only with --doctors. Re-running resets their passwords.
+  if (process.argv.includes("--doctors")) {
+    const doctorPassword = requirePassword(arg("doctor-password", ""), "--doctor-password");
+    const doctorHash = await hashPassword(doctorPassword);
+    for (const doctor of DOCTORS) {
+      await db.collection("admins").updateOne(
+        { email: doctor.email },
+        {
+          $set: { name: doctor.name, passwordHash: doctorHash, role: "provider", providerId: doctor.providerId },
+          $setOnInsert: { createdAt: new Date(), lastLoginAt: null },
+        },
+        { upsert: true },
+      );
+      console.log(`Provider login: ${doctor.email}  (${doctor.name})`);
+    }
+  }
 
   // Plans — only when empty, so edits made in /admin/pricing survive a re-seed.
   const planCount = await db.collection("plans").countDocuments();
@@ -135,43 +179,6 @@ try {
     console.log(`Inserted ${PLANS.length} pricing plans.`);
   } else {
     console.log(`Pricing plans already present (${planCount}) — left alone.`);
-  }
-
-  // Slots — opt in with --slots <days>. Weekdays only, one patient per time.
-  if (slotDays > 0) {
-    const today = new Date().toISOString().slice(0, 10);
-    const docs = [];
-    for (let index = 0; index < slotDays; index += 1) {
-      const date = isoAddDays(today, index);
-      const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
-      if (weekday === 0 || weekday === 6) continue;
-      // Friday closes at 2pm. Creating the full grid anyway left 2:30, 3:15,
-      // 4:00 and 4:45pm bookable at a locked office — four guaranteed no-shows
-      // every week. Keep this in step with officeHours in src/lib/practice.ts.
-      const closesAt = weekday === 5 ? timeToMinutes("2:00 pm") : Infinity;
-      for (const time of SLOT_TIMES) {
-        const minutes = timeToMinutes(time);
-        if (minutes >= closesAt) continue;
-        docs.push({
-          _id: new ObjectId(),
-          date,
-          time,
-          minutes,
-          capacity: 1,
-          booked: 0,
-          active: true,
-          createdAt: new Date(),
-        });
-      }
-    }
-    let added = 0;
-    try {
-      const result = await db.collection("slots").insertMany(docs, { ordered: false });
-      added = result.insertedCount;
-    } catch (error) {
-      added = error?.result?.insertedCount ?? 0;
-    }
-    console.log(`Slots: ${added} added, ${docs.length - added} already existed.`);
   }
 
   console.log("\nDone. Sign in at /admin/login.");

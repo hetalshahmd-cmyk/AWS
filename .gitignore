@@ -42,3 +42,11 @@ next-env.d.ts
 
 # keep the template, ignore real secrets
 !.env.example
+
+# local captures and notes — may show patient screens or appointment links
+/screenshots/
+/reports/
+/research_notes/
+
+# database backups hold patient health information
+/backups/

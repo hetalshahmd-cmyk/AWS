@@ -1,13 +1,15 @@
+import { requireAdminPage } from "@/lib/auth";
 import type { Metadata } from "next";
 import Link from "next/link";
 import PlansEditor from "@/components/admin/PlansEditor";
-import { getPlans } from "@/lib/repo";
+import { getPlans, getPriceTitles } from "@/lib/repo";
 
 export const metadata: Metadata = { title: "Pricing — Admin" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminPricingPage() {
-  const plans = await getPlans();
+  await requireAdminPage();
+  const [plans, titles] = await Promise.all([getPlans(), getPriceTitles()]);
 
   return (
     <div>
@@ -19,7 +21,7 @@ export default async function AdminPricingPage() {
         </Link>
         . Changes go live immediately.
       </p>
-      <PlansEditor initial={plans} />
+      <PlansEditor initial={plans} initialTitles={titles} />
     </div>
   );
 }

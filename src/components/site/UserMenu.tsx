@@ -33,9 +33,13 @@ export default function UserMenu() {
 
   if (!user) {
     // Don't point `next` at an auth page — that used to send new registrations
-    // straight back to /login instead of into the site.
+    // straight back to /login instead of into the site. Never at an
+    // appointment link either: its path is a bearer token, and /login is a
+    // public page the ad pixel sees.
     const returnable =
-      pathname && pathname !== "/" && !/^\/(login|register|admin)(\/|$)/.test(pathname);
+      pathname &&
+      pathname !== "/" &&
+      !/^\/(login|register|admin|appointment)(\/|$)/.test(pathname);
     const next = returnable ? `?next=${encodeURIComponent(pathname)}` : "";
     return (
       <Link

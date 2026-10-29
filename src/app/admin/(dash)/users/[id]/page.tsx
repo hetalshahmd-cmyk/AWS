@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/auth";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -15,6 +16,7 @@ export default async function UserDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireAdminPage();
   const { id } = await params;
   const detail = await getUserDetail(id);
   if (!detail) notFound();

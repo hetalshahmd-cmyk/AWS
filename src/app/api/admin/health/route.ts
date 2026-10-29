@@ -10,15 +10,18 @@ export const dynamic = "force-dynamic";
  * one we think it is? Guarded by a key rather than an admin session, because
  * admin sign-in needs MongoDB — which is exactly what may be broken.
  *
- *   /api/admin/health?key=<HEALTH_KEY or SESSION_SECRET>
- *   /api/admin/health?key=…&smtp=1     also attempts a real SMTP login
+ *   curl -H "x-health-key: $HEALTH_KEY" https://<site>/api/admin/health
+ *   …/api/admin/health?smtp=1     also attempts a real SMTP login
+ *
+ * The key is HEALTH_KEY only — never SESSION_SECRET, which signs every
+ * session and appointment link — and only in a header, so it stays out of
+ * request logs and browser history. Unset means the endpoint is off.
  */
 function authorized(request: Request): boolean {
-  const expected = process.env.HEALTH_KEY || process.env.SESSION_SECRET || "";
-  if (!expected) return false;
+  const expected = process.env.HEALTH_KEY ?? "";
+  if (expected.length < 16) return false;
 
-  const url = new URL(request.url);
-  const provided = request.headers.get("x-health-key") ?? url.searchParams.get("key") ?? "";
+  const provided = request.headers.get("x-health-key") ?? "";
   const a = Buffer.from(provided);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
@@ -47,7 +50,7 @@ export async function GET(request: Request) {
   } catch (error) {
     mongo.ok = false;
     mongo.ms = Date.now() - started;
-    mongo.error = error instanceof Error ? error.message.split("\n")[0] : "unknown";
+    mongo.error = error instanceof Error ? error.name : "unknown";
     mongo.hint =
       "Atlas → Network Access must allow this deployment's IPs (0.0.0.0/0 for serverless).";
   }
@@ -67,7 +70,8 @@ export async function GET(request: Request) {
       smtp.loggedInVia = `${candidate.host}:${candidate.port}`;
     } catch (error) {
       smtp.loginOk = false;
-      smtp.error = error instanceof Error ? error.message : "unknown";
+      const code = (error as { code?: string; responseCode?: number }) ?? {};
+      smtp.error = [code.code, code.responseCode].filter(Boolean).join(" ") || "failed";
     }
   }
 

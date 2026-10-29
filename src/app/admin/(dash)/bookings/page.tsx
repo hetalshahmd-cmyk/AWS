@@ -1,3 +1,4 @@
+import { requireAdminPage } from "@/lib/auth";
 import type { Metadata } from "next";
 import BookingsTable from "@/components/admin/BookingsTable";
 import { listBookings } from "@/lib/repo";
@@ -6,6 +7,7 @@ export const metadata: Metadata = { title: "Bookings — Admin" };
 export const dynamic = "force-dynamic";
 
 export default async function BookingsPage() {
+  await requireAdminPage();
   const bookings = await listBookings();
 
   return (

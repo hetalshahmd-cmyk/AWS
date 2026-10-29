@@ -1,19 +1,55 @@
 "use client";
 
 import { useState } from "react";
-import { highlights, officeHours, practice } from "@/lib/practice";
+import { highlights, practice } from "@/lib/practice";
+import { hoursEmpty, type OfficeHours } from "@/lib/scheduling";
+import { getOffices } from "@/lib/site-content";
+import { weekLines } from "./site/WeekHours";
 import { useBooking } from "./booking-context";
-import {
-  CalendarIcon,
-  ClockIcon,
-  GlobeIcon,
-  PhoneIcon,
-  PinIcon,
-  ShieldIcon,
-} from "./icons";
+import { useLang } from "./lang-context";
+import { CalendarIcon, ClockIcon, GlobeIcon, PhoneIcon, PinIcon, ShieldIcon } from "./icons";
 
 const TABS = ["Highlights", "Location"] as const;
 type Tab = (typeof TABS)[number];
+
+/**
+ * Spanish for this panel. The English lives in lib/practice.ts; these say the
+ * same things and should be checked by a Spanish speaker on staff, like the
+ * rest of lib/i18n.ts.
+ */
+const ES = {
+  tabs: { Highlights: "Información", Location: "Ubicación" } as Record<Tab, string>,
+  showMore: "ver más",
+  showLess: "ver menos",
+  bio: [
+    "Arizona Women's Specialists es una práctica de ginecología con amplia experiencia. El equipo atiende a pacientes en su oficina de Phoenix, AZ.",
+    "Como parte de su formación, los médicos de Arizona Women's Specialists obtuvieron su título de medicina en la Universidad de Arizona, Tucson, e hicieron su residencia en Banner - University Medical Center, Phoenix. Están certificados por el American Board of Obstetrics and Gynecology.",
+    "El equipo habla inglés y español con fluidez, lo que le permite atender a pacientes de distintos orígenes. En la consulta escuchan a cada paciente, le explican su condición y preparan un plan de tratamiento personalizado según sus necesidades, metas y preferencias.",
+  ],
+  highlights: [
+    { title: "Citas para pacientes nuevos", body: "Hay citas disponibles para pacientes nuevos" },
+    {
+      title: "Seguros aceptados",
+      body: "Aetna, BlueCross BlueShield, Cigna, Medicare, UnitedHealthcare",
+      actionLabel: "(200+) planes más aceptados",
+    },
+    {
+      title: "Poca espera",
+      body: "Normalmente se atiende a los pacientes dentro de los 15 minutos de su hora",
+    },
+    { title: "Idiomas", body: "En la oficina se habla inglés, español, guyaratí e hindi" },
+  ],
+  directions: "Cómo llegar",
+  hours: "Horario de esta semana",
+  gettingHere: "Cómo llegar a la oficina",
+  closed: "Cerrado",
+  arrive: [
+    "Estacionamiento gratuito justo enfrente de la Suite 5.",
+    "Entrada en planta baja, sin escalones, con puertas automáticas.",
+    "La Ruta 51 de Valley Metro para en 51st Ave y Camelback, a 4 minutos a pie.",
+    "Consultorios y baños accesibles para silla de ruedas.",
+  ],
+};
 
 const ICONS = {
   calendar: CalendarIcon,
@@ -22,8 +58,10 @@ const ICONS = {
   globe: GlobeIcon,
 };
 
-export default function ProfilePanel() {
+export default function ProfilePanel({ hours }: { hours: OfficeHours | null }) {
   const [tab, setTab] = useState<Tab>("Highlights");
+  const { lang } = useLang();
+  const es = lang === "es";
 
   return (
     <div>
@@ -42,14 +80,14 @@ export default function ProfilePanel() {
                   : "border-transparent text-ink-soft hover:text-ink"
               }`}
             >
-              {item}
+              {es ? ES.tabs[item] : item}
             </button>
           );
         })}
       </div>
 
-      <div role="tabpanel" aria-label={tab} className="pt-7">
-        {tab === "Highlights" ? <Highlights /> : <Location />}
+      <div role="tabpanel" aria-label={es ? ES.tabs[tab] : tab} className="pt-7">
+        {tab === "Highlights" ? <Highlights /> : <Location hours={hours} />}
       </div>
     </div>
   );
@@ -58,11 +96,13 @@ export default function ProfilePanel() {
 function Highlights() {
   const { openInsurance } = useBooking();
   const [expanded, setExpanded] = useState(false);
+  const es = useLang().lang === "es";
+  const bio: readonly string[] = es ? ES.bio : practice.bio;
 
   return (
     <div>
       <div className="max-w-2xl space-y-4 text-[16px] leading-relaxed text-ink">
-        {(expanded ? practice.bio : practice.bio.slice(0, 1)).map((paragraph, index, shown) => (
+        {(expanded ? bio : bio.slice(0, 1)).map((paragraph, index, shown) => (
           <p key={paragraph.slice(0, 24)}>
             {paragraph}
             {index === shown.length - 1 && (
@@ -73,7 +113,7 @@ function Highlights() {
                   onClick={() => setExpanded((prev) => !prev)}
                   className="focus-ring font-medium link-underline"
                 >
-                  {expanded ? "show less" : "show more"}
+                  {expanded ? (es ? ES.showLess : "show less") : es ? ES.showMore : "show more"}
                 </button>
               </>
             )}
@@ -82,15 +122,16 @@ function Highlights() {
       </div>
 
       <ul className="mt-7 divide-y divide-line border-t border-line">
-        {highlights.map((item) => {
+        {highlights.map((item, index) => {
           const Icon = ICONS[item.icon];
+          const text = es ? ES.highlights[index] : item;
           return (
             <li key={item.title} className="flex gap-4 py-5">
               <Icon className="mt-0.5 h-8 w-8 shrink-0 text-ink" />
               <div>
-                <h3 className="text-[16px] font-semibold">{item.title}</h3>
+                <h3 className="text-[16px] font-semibold">{text.title}</h3>
                 <p className="mt-1 max-w-md text-[15px] leading-relaxed text-ink-soft">
-                  {item.body}
+                  {text.body}
                 </p>
                 {item.action === "insurance" && (
                   <button
@@ -98,7 +139,7 @@ function Highlights() {
                     onClick={openInsurance}
                     className="focus-ring mt-1.5 text-[15px] font-medium link-underline"
                   >
-                    {item.actionLabel}
+                    {(es ? ES.highlights[index].actionLabel : undefined) ?? item.actionLabel}
                   </button>
                 )}
               </div>
@@ -110,7 +151,9 @@ function Highlights() {
   );
 }
 
-function Location() {
+function Location({ hours }: { hours: OfficeHours | null }) {
+  const { lang } = useLang();
+  const es = lang === "es";
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     practice.mapsQuery,
   )}`;
@@ -137,32 +180,51 @@ function Location() {
             rel="noreferrer"
             className="focus-ring rounded-lg bg-wine px-4 py-2.5 text-[14px] font-semibold text-white transition hover:bg-wine-deep"
           >
-            Get directions
+            {es ? ES.directions : "Get directions"}
           </a>
         </div>
       </div>
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
         <div>
-          <h3 className="text-[17px] font-semibold">Office hours</h3>
-          <dl className="mt-3 divide-y divide-line border-t border-line">
-            {officeHours.map((row) => (
-              <div key={row.day} className="flex justify-between py-2.5 text-[15px]">
-                <dt className="text-ink-soft">{row.day}</dt>
-                <dd className={row.hours === "Closed" ? "text-muted" : "font-medium"}>
-                  {row.hours}
-                </dd>
+          <h3 className="text-[17px] font-semibold">{es ? ES.hours : "This week's hours"}</h3>
+          {hoursEmpty(hours) || !hours ? (
+            <p className="mt-3 text-[15px] text-ink-soft">
+              {es
+                ? `Llame al ${practice.phone} para el horario.`
+                : `Call ${practice.phone} for times.`}
+            </p>
+          ) : (
+            getOffices().map((office) => (
+              <div key={office.id} className="mt-3">
+                <p className="text-[14px] font-semibold">{office.name}</p>
+                <dl className="mt-1 divide-y divide-line border-t border-line">
+                  {weekLines(hours[office.id], lang).map((row) => (
+                    <div key={row.days} className="flex justify-between py-2 text-[15px]">
+                      <dt className="text-ink-soft">{row.days}</dt>
+                      <dd className={row.hours ? "font-medium" : "text-muted"}>
+                        {row.hours ?? (es ? ES.closed : "Closed")}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
-            ))}
-          </dl>
+            ))
+          )}
         </div>
         <div>
-          <h3 className="text-[17px] font-semibold">Getting here</h3>
+          <h3 className="text-[17px] font-semibold">{es ? ES.gettingHere : "Getting here"}</h3>
           <ul className="mt-3 space-y-2.5 text-[15px] leading-relaxed text-ink-soft">
-            <li>Free surface parking directly in front of Suite 5.</li>
-            <li>Ground-floor, step-free entrance with automatic doors.</li>
-            <li>Valley Metro Route 51 stops at 51st Ave &amp; Camelback, a 4-minute walk.</li>
-            <li>Wheelchair accessible exam rooms and restrooms.</li>
+            {es ? (
+              ES.arrive.map((line) => <li key={line}>{line}</li>)
+            ) : (
+              <>
+                <li>Free surface parking directly in front of Suite 5.</li>
+                <li>Ground-floor, step-free entrance with automatic doors.</li>
+                <li>Valley Metro Route 51 stops at 51st Ave &amp; Camelback, a 4-minute walk.</li>
+                <li>Wheelchair accessible exam rooms and restrooms.</li>
+              </>
+            )}
           </ul>
           <a
             href={`tel:${practice.phone.replace(/[^\d]/g, "")}`}
@@ -179,7 +241,12 @@ function Location() {
 
 function MapArt() {
   return (
-    <svg viewBox="0 0 640 240" className="h-44 w-full sm:h-52" role="img" aria-label="Map of the office location">
+    <svg
+      viewBox="0 0 640 240"
+      className="h-44 w-full sm:h-52"
+      role="img"
+      aria-label="Map of the office location"
+    >
       <rect width="640" height="240" fill="#eef3ef" />
       <g stroke="#dbe4dc" strokeWidth="10">
         <path d="M0 60h640M0 170h640M120 0v240M300 0v240M470 0v240" />

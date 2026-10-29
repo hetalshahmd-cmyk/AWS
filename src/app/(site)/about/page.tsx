@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Ico from "@/components/site/Ico";
-import ProviderAvatar from "@/components/site/ProviderAvatar";
-import ZocdocReviews from "@/components/site/ZocdocReviews";
+import { BookingProvider } from "@/components/booking-context";
+import { LangProvider } from "@/components/lang-context";
+import ProviderDirectory from "@/components/site/ProviderDirectory";
 import {
   BookButton,
-  Button,
   Eyebrow,
   Photo,
   PageHeader,
@@ -12,16 +12,20 @@ import {
 } from "@/components/site/ui";
 import { photos } from "@/lib/photos";
 import { practice } from "@/lib/practice";
-import { providerCreds, providers, site } from "@/lib/site";
+import { getProviderReasons } from "@/lib/repo";
+import { arizonaTodayIso } from "@/lib/scheduling";
+import { providerCreds, site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: `Our Providers — ${site.name}`,
   description:
-    "Meet the OB-GYN team at Arizona Women Specialists — Dr. Hetalkumar Shah MD, Julie Denton NP, and Kylee Tate PA-C. All accepting new patients.",
+    "Meet the OB-GYN team at Arizona Women Specialists — doctors, nurse practitioners and physician assistants in Phoenix and Glendale. All accepting new patients.",
   alternates: { canonical: "/about" },
 };
 
-export default function ProvidersPage() {
+export default async function ProvidersPage() {
+  // Each provider's visit reasons, for the booking form that opens here.
+  const providerReasons = await getProviderReasons().catch(() => ({}));
   return (
     <>
       <PageHeader
@@ -39,59 +43,13 @@ export default function ProvidersPage() {
         <h2 id="team-title" className="sr-only">
           Our providers
         </h2>
-        <ul className="grid gap-5 min-[760px]:grid-cols-2 min-[1060px]:grid-cols-3">
-          {providers.map((provider) => (
-            <li
-              key={provider.name}
-              className="reveal group flex flex-col overflow-hidden rounded-[28px] border border-mist bg-white transition duration-300 hover:-translate-y-1 hover:shadow-lift"
-            >
-              {/* Each card is banded in that provider's own colour. */}
-              <div className={`relative h-36 bg-linear-to-br ${provider.avatar}`}>
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-0 bg-[radial-gradient(circle_at_85%_10%,rgba(255,255,255,.28),transparent_55%)]"
-                />
-                <span className="absolute left-5 top-5 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-[0.78rem] font-medium text-sage-ink">
-                  <span className="h-1.5 w-1.5 rounded-full bg-sage" aria-hidden="true" />
-                  Accepting new patients
-                </span>
-                <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 transition-transform duration-500 group-hover:scale-105">
-                  <ProviderAvatar provider={provider} size="lg" />
-                </div>
-              </div>
-
-              <div className="flex flex-1 flex-col px-[clamp(1.5rem,3vw,2rem)] pb-[clamp(1.5rem,3vw,2rem)] pt-20 text-center">
-                <h3 className="font-display text-[1.65rem] leading-tight text-plum">
-                  {provider.name}
-                </h3>
-                <p className="mt-1.5 text-[0.95rem] font-medium text-sage-ink">{provider.cred}</p>
-                <ZocdocReviews count={provider.zocdocReviews} className="mt-2 justify-center" />
-
-                <div className="mt-6 border-t border-mist pt-5">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-stone">
-                    Languages
-                  </p>
-                  <ul className="mt-3 flex flex-wrap justify-center gap-1.5">
-                    {provider.languages.map((language) => (
-                      <li
-                        key={language}
-                        className="rounded-full border border-mist bg-ivory px-3 py-1 text-[0.85rem] text-plum"
-                      >
-                        {language}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="mt-auto pt-8">
-                  <Button href={site.bookingUrl} variant="line" icon="cal" className="w-full">
-                    {provider.cta}
-                  </Button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div id="providers" className="scroll-mt-28">
+          <LangProvider initial="en">
+            <BookingProvider todayIso={arizonaTodayIso()} providerReasons={providerReasons}>
+              <ProviderDirectory />
+            </BookingProvider>
+          </LangProvider>
+        </div>
 
         <ul className="reveal mt-12 flex flex-wrap justify-center gap-2.5">
           {providerCreds.map((cred) => (

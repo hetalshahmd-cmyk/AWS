@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import nodemailer, { type Transporter } from "nodemailer";
 import { site } from "./site";
 
@@ -42,14 +42,14 @@ export const mailConfigured = Boolean(user && passwords()[0]);
 export function passwordFingerprint() {
   const raw = process.env.SMTP_PASS ?? "";
   const effective = passwords()[0] ?? "";
+  const key = process.env.HEALTH_KEY ?? "";
 
   return {
     source: process.env.SMTP_PASS_B64 ? "SMTP_PASS_B64" : "SMTP_PASS",
-    length: effective.length,
-    sha256: effective
-      ? createHash("sha256").update(effective).digest("hex").slice(0, 12)
-      : "(empty)",
-    firstLast: effective ? `${effective[0]}…${effective[effective.length - 1]}` : "(empty)",
+    // Keyed with HEALTH_KEY: two deployments with the same key can compare
+    // it, but it can't be used to test password guesses offline.
+    fingerprint:
+      effective && key ? createHmac("sha256", key).update(effective).digest("hex").slice(0, 12) : "(empty)",
     // The usual silent copy-paste damage.
     looksEscaped: /\\[$`"\\]/.test(raw),
     hasEdgeWhitespace: raw !== raw.trim(),
@@ -164,6 +164,25 @@ export async function sendMail(options: {
 export async function verifyMail(): Promise<SmtpCandidate> {
   const { candidate } = await resolveTransport();
   return candidate;
+}
+
+/**
+ * Sent instead of a code when someone asks to register an address that
+ * already has an account — the page can't say so, or it would tell anyone
+ * who is a patient here.
+ */
+export function accountExistsEmail(): { subject: string; text: string; html: string } {
+  const subject = `You already have a ${site.name} account`;
+  const text = [
+    "Someone asked to create an account with this email, but it already has one.",
+    "",
+    "If that was you, log in instead — or use \"Forgot password\" by calling the office.",
+    "If it wasn't you, you can ignore this email; nothing has changed.",
+    "",
+    `${site.name} · ${site.phone}`,
+  ].join("\n");
+  const html = `<!doctype html><html><body style="margin:0;background:#f7f4f5;padding:32px 16px;font-family:Segoe UI,system-ui,Arial,sans-serif;color:#2c2026"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;background:#fff;border:1px solid #ece4e7;border-radius:16px"><tr><td style="padding:28px"><p style="margin:0;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#7c2c3e">${site.name}</p><h1 style="margin:12px 0 0;font-size:22px;font-weight:600">You already have an account</h1><p style="margin:10px 0 0;font-size:15px;line-height:1.6;color:#6c5e63">Someone asked to create an account with this email, but it already has one. If that was you, log in instead. If it wasn&rsquo;t you, you can ignore this email &mdash; nothing has changed.</p><p style="margin:18px 0 0;font-size:13px;color:#6c5e63">${site.name} &middot; ${site.phone}</p></td></tr></table></body></html>`;
+  return { subject, text, html };
 }
 
 export function otpEmail(code: string): { subject: string; text: string; html: string } {

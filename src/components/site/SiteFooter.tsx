@@ -3,14 +3,19 @@ import Link from "next/link";
 import BookLink from "@/components/analytics/BookLink";
 import PhoneLink from "@/components/analytics/PhoneLink";
 import { photos } from "@/lib/photos";
-import { locations, navLinks, officeHours, site } from "@/lib/site";
+import { getOfficeHours } from "@/lib/repo";
+import { hoursEmpty } from "@/lib/scheduling";
+import { navLinks, site } from "@/lib/site";
+import { getOffices } from "@/lib/site-content";
+import WeekHours from "./WeekHours";
 import Ico from "./Ico";
 import { CallAndBook, Container, Eyebrow } from "./ui";
 
 const HEADING = "text-[0.75rem] font-semibold uppercase tracking-[0.2em] text-plum";
 const LINK = "focus-ring inline-flex py-1 text-[0.95rem] text-plum-soft transition hover:text-wine";
 
-export default function SiteFooter() {
+export default async function SiteFooter() {
+  const hours = await getOfficeHours();
   return (
     <>
       {/* ----------------------------------------------------- closing CTA -- */}
@@ -80,7 +85,7 @@ export default function SiteFooter() {
                 ))}
                 <li>
                   <BookLink
-                    href={site.bookingUrl}
+                    href={site.bookCta}
                     className="focus-ring inline-flex items-center gap-1.5 py-1 text-[0.95rem] font-medium text-wine"
                   >
                     Book online
@@ -93,7 +98,7 @@ export default function SiteFooter() {
             <div>
               <h3 className={HEADING}>Visit</h3>
               <ul className="mt-5 space-y-5">
-                {locations.map((location) => (
+                {getOffices().map((location) => (
                   <li key={location.name}>
                     <p className="font-medium text-plum">{location.name}</p>
                     <address className="mt-1 text-[0.95rem] not-italic leading-relaxed">
@@ -116,15 +121,24 @@ export default function SiteFooter() {
             </div>
 
             <div>
-              <h3 className={HEADING}>Hours</h3>
-              <dl className="mt-5 space-y-3">
-                {officeHours.map((row) => (
-                  <div key={row.days}>
-                    <dt className="font-medium text-plum">{row.days}</dt>
-                    <dd className="text-[0.95rem]">{row.hours}</dd>
-                  </div>
-                ))}
-              </dl>
+              <h3 className={HEADING}>Hours this week</h3>
+              {hoursEmpty(hours) || !hours ? (
+                <p className="mt-5 text-[0.95rem]">Call {site.phone} for this week&apos;s times.</p>
+              ) : (
+                <div className="mt-5 space-y-4">
+                  {getOffices().map((location) => (
+                    <div key={location.id}>
+                      <p className="font-medium text-plum">{location.area}</p>
+                      <WeekHours
+                        days={hours[location.id]}
+                        className="mt-1 space-y-0.5 text-[0.9rem]"
+                        rowClass="flex gap-2"
+                        dtClass="w-20 shrink-0"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -132,7 +146,10 @@ export default function SiteFooter() {
             <span>
               © {new Date().getFullYear()} {site.name}
             </span>
-            <Link href="/privacy" className="focus-ring inline-flex min-h-11 items-center transition hover:text-wine">
+            <Link
+              href="/privacy"
+              className="focus-ring inline-flex min-h-11 items-center transition hover:text-wine"
+            >
               Privacy Policy
             </Link>
           </div>

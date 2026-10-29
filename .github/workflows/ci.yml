@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+    env:
+      # Throwaway values for the test run only — nothing here is a real secret.
+      MONGODB_URI: mongodb://localhost:27017
+      MONGODB_DB: arizona_ci
+      SESSION_SECRET: ci-only-session-secret-not-used-anywhere-else-0123456789
+      # A dummy id so the consent notice renders; Meta is blocked in the tests.
+      NEXT_PUBLIC_META_PIXEL_ID: "000000000000000"
+      NEXT_TELEMETRY_DISABLED: "1"
+      CHROME_PATH: /usr/bin/google-chrome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      # Builds, seeds a throwaway database, starts the app and runs every suite.
+      - run: npm run test:e2e

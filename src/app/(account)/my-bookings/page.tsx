@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import MyBookings from "@/components/auth/MyBookings";
+import PatientOverview from "@/components/auth/PatientOverview";
 import { site } from "@/lib/site";
+import { loadMyBookings } from "./load";
 
 export const metadata: Metadata = {
-  title: `My bookings — ${site.name}`,
-  description: "See and cancel your appointments.",
+  title: `My appointments — ${site.name}`,
+  description: "Your appointments, check-ins and providers.",
+  robots: { index: false, follow: false },
 };
 
-export default function MyBookingsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function MyBookingsPage() {
+  const { user, bookings } = await loadMyBookings();
   return (
-    <div className="min-h-full bg-ivory">
-      <div className="mx-auto w-full max-w-3xl px-[clamp(20px,5vw,48px)] py-[clamp(2.5rem,6vw,4.5rem)]">
-        <MyBookings />
-      </div>
-    </div>
+    <PatientOverview firstName={user?.name.trim().split(/\s+/)[0] ?? ""} initial={bookings} />
   );
 }

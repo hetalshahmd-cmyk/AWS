@@ -1,12 +1,16 @@
+import { crossSiteBlocked } from "@/lib/csrf";
 import { NextResponse } from "next/server";
 import { createUserSession } from "@/lib/auth";
 import { sendServerEvent } from "@/lib/meta";
 import { clearCode, isEmailVerified } from "@/lib/otp";
+import { clientIp, limited } from "@/lib/rate-limit";
 import { DuplicateUserError, registerUser } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const csrf = crossSiteBlocked(request);
+  if (csrf) return csrf;
   let body: { name?: string; email?: string; password?: string; eventId?: string };
   try {
     body = await request.json();
@@ -14,20 +18,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const name = (body.name ?? "").trim().slice(0, 80);
-  const email = (body.email ?? "").trim().toLowerCase().slice(0, 120);
-  const password = body.password ?? "";
+  const name = typeof body.name === "string" ? body.name.trim().slice(0, 80) : "";
+  const email = typeof body.email === "string" ? body.email.trim().toLowerCase().slice(0, 120) : "";
+  const password = typeof body.password === "string" ? body.password : "";
 
   if (!name) return NextResponse.json({ error: "Enter your name" }, { status: 400 });
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return NextResponse.json({ error: "Enter a valid email" }, { status: 400 });
   }
-  if (password.length < 8) {
+  if (password.length < 8 || password.length > 256) {
     return NextResponse.json(
       { error: "Use a password of at least 8 characters" },
       { status: 400 },
     );
   }
+
+  const blocked = await limited([
+    { key: `register:ip:${clientIp(request)}`, limit: 10, windowSeconds: 3600 },
+  ]);
+  if (blocked) return blocked;
 
   try {
     // The address must have passed the emailed code — the client can't skip it

@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Inter, Newsreader } from "next/font/google";
 import "./globals.css";
 import Analytics from "@/components/analytics/Analytics";
 import { SessionProvider } from "@/components/auth/session-context";
+import ProvidersSync from "@/components/ProvidersSync";
+import SiteContentSync from "@/components/SiteContentSync";
+import { DEFAULT_SITE_CONTENT } from "@/lib/site-content";
+import { DEFAULT_PROVIDERS } from "@/lib/providers";
+import { loadProviders, loadSiteContent } from "@/lib/repo";
 import { site } from "@/lib/site";
 
 const inter = Inter({
@@ -54,14 +60,23 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Providers come from the database (Admin → Doctors); the seed list if it is down.
+  const providers = await loadProviders().catch(() => DEFAULT_PROVIDERS);
+  // Hero and office details (Admin → Site content); the starting content if it is down.
+  const content = await loadSiteContent().catch(() => DEFAULT_SITE_CONTENT);
+  // The CSP nonce from src/proxy.ts. Reading request headers renders every
+  // page per request, which nonces require.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en" className={`${inter.variable} ${newsreader.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-white font-sans text-[17px] leading-[1.62]">
+        <ProvidersSync list={providers} />
+        <SiteContentSync content={content} />
         <SessionProvider>{children}</SessionProvider>
-        <Analytics />
+        <Analytics nonce={nonce} />
       </body>
     </html>
   );

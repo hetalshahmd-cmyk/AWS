@@ -28,8 +28,22 @@ export function newEventId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 }
 
+/**
+ * Pages about one patient: appointment links, My bookings, admin, and /book
+ * while rescheduling. The pixel never loads or fires here — the address
+ * itself (a signed appointment link) or simply being on it would tell Meta
+ * that this browser belongs to a patient.
+ */
+export function isPrivateLocation(pathname: string, search = ""): boolean {
+  if (/^\/(appointment|my-bookings|admin)(\/|$)/.test(pathname)) return true;
+  // Sign-in pages on their way back to an appointment carry its link in `next`.
+  if (/^\/(login|register)$/.test(pathname) && /appointment/i.test(search)) return true;
+  return pathname === "/book" && /[?&]reschedule=/.test(search);
+}
+
 export function track(name: ClientEventName, eventId?: string): void {
   if (typeof window === "undefined") return;
+  if (isPrivateLocation(window.location.pathname, window.location.search)) return;
   const fbq = window.fbq;
   if (typeof fbq !== "function") return;
   try {

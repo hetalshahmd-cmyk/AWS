@@ -75,7 +75,7 @@ export function Button({
 
   // Booking leaves this domain now, so the click is the last thing we can
   // measure. Same reasoning as the phone branch above.
-  if (href === site.bookingUrl) {
+  if (href === site.bookCta || href === site.bookingUrl) {
     return (
       <BookLink href={href} className={classes} ariaLabel={ariaLabel}>
         {content}
@@ -107,7 +107,7 @@ export function BookButton({
   ...props
 }: Omit<ButtonProps, "href" | "children"> & { label?: string }) {
   return (
-    <Button href={site.bookingUrl} icon="cal" {...props}>
+    <Button href={site.bookCta} icon="cal" {...props}>
       {label}
     </Button>
   );

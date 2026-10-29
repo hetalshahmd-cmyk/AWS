@@ -9,11 +9,14 @@ const scryptAsync = promisify(scrypt) as (
 ) => Promise<Buffer>;
 
 // scrypt is in Node core, so no bcrypt/argon dependency to install or rebuild.
-const N = 16384;
+// N = 2^17, r = 8: OWASP's minimum for scrypt (128 MB, ~0.3 s per hash).
+// Hashes made with a smaller N still verify and are upgraded on the next
+// sign-in (see needsRehash).
+const N = 131072;
 const R = 8;
 const P = 1;
 const KEYLEN = 64;
-const MAXMEM = 64 * 1024 * 1024;
+const MAXMEM = 256 * 1024 * 1024;
 
 /** Returns `scrypt$N$r$p$salt$hash`, all base64url. Salt is per-password. */
 export async function hashPassword(password: string): Promise<string> {
@@ -32,6 +35,15 @@ export async function hashPassword(password: string): Promise<string> {
     salt.toString("base64url"),
     key.toString("base64url"),
   ].join("$");
+}
+
+/** A well-formed hash for no account — verified against so timing doesn't reveal unknown emails. */
+export const DUMMY_HASH = `scrypt$${N}$8$1$AAAAAAAAAAAAAAAAAAAAAA$${"A".repeat(86)}`;
+
+/** True when a stored hash uses weaker settings than today's. */
+export function needsRehash(stored: string): boolean {
+  const parts = stored?.split("$") ?? [];
+  return parts.length === 6 && parts[0] === "scrypt" && (Number(parts[1]) < N || Number(parts[2]) < R);
 }
 
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
