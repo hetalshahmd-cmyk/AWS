@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminRoute, readJson } from "@/lib/api-helpers";
+import { readJson, teamRoute } from "@/lib/api-helpers";
 import { createSlots, listSlotBookings, listSlots } from "@/lib/repo";
 import { addDays } from "@/lib/availability";
 import { arizonaTodayIso, isOfficeId, isProviderId, normaliseTime } from "@/lib/scheduling";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
-export const GET = adminRoute(async (request) => {
+export const GET = teamRoute(async (request) => {
   const { searchParams } = new URL(request.url);
   const from = searchParams.get("from") ?? arizonaTodayIso();
   const to = searchParams.get("to") ?? addDays(from, 27);
@@ -37,7 +37,7 @@ type Body = {
   officeId?: string;
 };
 
-export const POST = adminRoute(async (request) => {
+export const POST = teamRoute(async (request) => {
   const body = await readJson<Body>(request);
 
   if (!isProviderId(body.providerId)) {

@@ -13,5 +13,5 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ i
   const { id } = await params;
   const booking = await getBookingById(id).catch(() => null);
   if (!booking) notFound();
-  return <BookingDetail booking={booking} backHref="/admin/bookings" backLabel="All bookings" />;
+  return <BookingDetail booking={booking} backHref="/admin/bookings" backLabel="All bookings" canEmail />;
 }

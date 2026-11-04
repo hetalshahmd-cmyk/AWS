@@ -1,5 +1,6 @@
 "use client";
 
+import { usePanel } from "./panel-context";
 import { insuranceLabel } from "@/lib/practice";
 import { getAllProviders } from "@/lib/providers";
 import Link from "next/link";
@@ -14,6 +15,7 @@ import { FIELD, Notice, StatusBadge } from "./ui";
 type Filter = "all" | "confirmed" | "cancelled" | "upcoming";
 
 export default function BookingsTable({ initial }: { initial: Booking[] }) {
+  const panel = usePanel();
   const [bookings, setBookings] = useState(initial);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -252,7 +254,7 @@ export default function BookingsTable({ initial }: { initial: Booking[] }) {
                   <td className="whitespace-nowrap px-4 py-3 text-right">
                     <div className="inline-flex items-center gap-1">
                       <Link
-                        href={`/admin/bookings/${booking.id}`}
+                        href={`${panel.base}/bookings/${booking.id}`}
                         className="focus-ring inline-flex min-h-9 items-center rounded-lg border border-line-strong px-3 text-[13px] font-semibold transition hover:bg-shell"
                       >
                         View
@@ -276,15 +278,18 @@ export default function BookingsTable({ initial }: { initial: Booking[] }) {
                           Restore
                         </button>
                       )}
-                      <button
-                        type="button"
-                        disabled={busyId === booking.id}
-                        onClick={() => remove(booking.id)}
-                        aria-label={`Delete booking for ${booking.patient.firstName} ${booking.patient.lastName}`}
-                        className="focus-ring inline-flex min-h-9 items-center rounded-lg px-2.5 text-[13px] font-semibold text-plum-soft transition hover:bg-shell hover:text-wine disabled:opacity-60"
-                      >
-                        Delete
-                      </button>
+                      {/* Deleting a booking (and its check-in photos) is for admins only. */}
+                      {panel.role === "admin" && (
+                        <button
+                          type="button"
+                          disabled={busyId === booking.id}
+                          onClick={() => remove(booking.id)}
+                          aria-label={`Delete booking for ${booking.patient.firstName} ${booking.patient.lastName}`}
+                          className="focus-ring inline-flex min-h-9 items-center rounded-lg px-2.5 text-[13px] font-semibold text-plum-soft transition hover:bg-shell hover:text-wine disabled:opacity-60"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

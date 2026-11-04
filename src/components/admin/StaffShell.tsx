@@ -88,7 +88,8 @@ export function Initials({ name }: { name: string }) {
   const letters = name
     .replace(/^(dr\.?\s+)/i, "")
     .split(/\s+/)
-    .filter(Boolean)
+    // Words only — "Rosa (front desk)" is "RF", not "R(".
+    .filter((part) => /^\p{L}/u.test(part))
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");

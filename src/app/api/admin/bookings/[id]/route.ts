@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { adminRoute, readJson } from "@/lib/api-helpers";
+import { adminRoute, readJson, teamRoute } from "@/lib/api-helpers";
 import { deleteBooking, setBookingStatus, SlotUnavailableError } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export const PATCH = adminRoute(async (request, ctx: Ctx) => {
+export const PATCH = teamRoute(async (request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const body = await readJson<{ status?: string }>(request);
 

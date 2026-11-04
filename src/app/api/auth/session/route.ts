@@ -1,6 +1,6 @@
 import { crossSiteBlocked } from "@/lib/csrf";
 import { NextResponse } from "next/server";
-import { createSession, createUserSession, destroyUserSession, getCurrentUser } from "@/lib/auth";
+import { createSession, createUserSession, destroyUserSession, getCurrentUser, panelHome } from "@/lib/auth";
 import { blockedByFailures, clientIp, fail } from "@/lib/rate-limit";
 import { authenticateAdmin, authenticateUser, staffAccountExists } from "@/lib/repo";
 
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
         await createSession(admin);
         return NextResponse.json({
           staff: { role: admin.role },
-          redirect: admin.role === "provider" ? "/admin/doctor" : "/admin",
+          redirect: panelHome(admin.role),
         });
       }
       await fail(staffRules);

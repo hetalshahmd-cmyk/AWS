@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import { GridFSBucket, ObjectId, type Filter } from "mongodb";
 import { ensureIndexes, getDb } from "./db";
 import { deletePhoto } from "./intake-files";
@@ -393,9 +394,20 @@ export class StaffInputError extends Error {
 
 const STAFF_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
+/**
+ * A strong password to hand to someone: 16 characters from letters and digits
+ * that are hard to mix up (no 0/O, 1/l/I), with a dash every 4 for reading
+ * it out. Shown once; only its hash is stored.
+ */
+export function generatePassword(): string {
+  const alphabet = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const chars = Array.from({ length: 16 }, () => alphabet[randomInt(alphabet.length)]);
+  return [0, 4, 8, 12].map((at) => chars.slice(at, at + 4).join("")).join("-");
+}
+
 function staffPassword(password: unknown): string {
-  if (typeof password !== "string" || password.length < 12 || password.length > 256) {
-    throw new StaffInputError("Use a password of at least 12 characters");
+  if (typeof password !== "string" || password.length < 6 || password.length > 256) {
+    throw new StaffInputError("Use a password of at least 6 characters");
   }
   return password;
 }
@@ -493,15 +505,22 @@ export async function updateOwnAccount(
 }
 
 /** Another full admin (Settings → Admins). */
-export async function createAdminAccount(input: { name?: unknown; email?: unknown; password?: unknown }): Promise<Admin> {
+export async function createAdminAccount(input: {
+  name?: unknown;
+  email?: unknown;
+  password?: unknown;
+  /** "staff" = the front-desk panel; anything else a full admin. */
+  role?: unknown;
+}): Promise<Admin> {
+  const role = input.role === "staff" ? "staff" : "admin";
   const email = typeof input.email === "string" ? input.email.trim().toLowerCase() : "";
   if (!STAFF_EMAIL.test(email)) throw new StaffInputError("Enter a valid email");
   const password = staffPassword(input.password);
   try {
     const admin = await createAdmin({ email, password, name: typeof input.name === "string" ? input.name : undefined });
     const { admins } = await collections();
-    await admins.updateOne({ _id: new ObjectId(admin.id) }, { $set: { role: "admin", providerId: null } });
-    return { ...admin, role: "admin", providerId: null };
+    await admins.updateOne({ _id: new ObjectId(admin.id) }, { $set: { role, providerId: null } });
+    return { ...admin, role, providerId: null };
   } catch (error) {
     if (error instanceof DuplicateAdminError) throw new StaffInputError("Another staff account already uses that email");
     throw error;
@@ -520,8 +539,11 @@ export async function removeAdminAccount(id: string, selfId: string): Promise<bo
   if (!ObjectId.isValid(id)) return false;
   const target = await admins.findOne({ _id: new ObjectId(id) });
   if (!target || target.role === "provider") return false;
-  const fullAdmins = await admins.countDocuments({ $or: [{ role: "admin" }, { role: { $exists: false } }] });
-  if (fullAdmins <= 1) throw new StaffInputError("You can't remove the only admin");
+  // The last full admin stays; front-desk accounts can always go.
+  if (target.role !== "staff") {
+    const fullAdmins = await admins.countDocuments({ $or: [{ role: "admin" }, { role: { $exists: false } }] });
+    if (fullAdmins <= 1) throw new StaffInputError("You can't remove the only admin");
+  }
   const result = await admins.deleteOne({ _id: target._id });
   return result.deletedCount === 1;
 }

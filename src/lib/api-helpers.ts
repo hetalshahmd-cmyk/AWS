@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ForbiddenError, requireAdmin, requireStaff, UnauthorizedError } from "./auth";
+import { ForbiddenError, requireAdmin, requireStaff, requireTeam, UnauthorizedError } from "./auth";
 import { crossSiteBlocked } from "./csrf";
 import type { Admin } from "./models";
 
@@ -39,6 +39,25 @@ export function adminRoute<T extends unknown[]>(
     if (csrf) return csrf;
     try {
       await requireAdmin();
+      return await handler(request, ...args);
+    } catch (error) {
+      return failure(error);
+    }
+  };
+}
+
+/**
+ * Like adminRoute, but open to front-desk staff accounts too — the website,
+ * appointment slots, bookings and patient emails. Providers get a 403.
+ */
+export function teamRoute<T extends unknown[]>(
+  handler: (request: Request, ...args: T) => Promise<NextResponse>,
+) {
+  return async (request: Request, ...args: T): Promise<NextResponse> => {
+    const csrf = crossSiteBlocked(request);
+    if (csrf) return csrf;
+    try {
+      await requireTeam();
       return await handler(request, ...args);
     } catch (error) {
       return failure(error);

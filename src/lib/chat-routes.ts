@@ -21,7 +21,8 @@ export async function patientCaller(): Promise<ChatCaller> {
 export async function staffCaller(): Promise<ChatCaller> {
   const staff = await getCurrentAdmin();
   if (!staff) throw new UnauthorizedError();
-  if (staff.role === "admin") return { viewer: "admin", name: staff.name };
+  // Admins and front-desk staff monitor chats; they never write in them.
+  if (staff.role === "admin" || staff.role === "staff") return { viewer: "admin", name: staff.name };
   return { viewer: "provider", providerId: staff.providerId, name: providerById(staff.providerId)?.name ?? staff.name };
 }
 

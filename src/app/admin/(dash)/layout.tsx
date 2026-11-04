@@ -14,6 +14,8 @@ const LINKS: StaffLink[] = [
   { href: "/admin/site", label: "Modify site", icon: "edit" },
   { href: "/admin/articles", label: "Articles", icon: "globe" },
   { href: "/admin/pricing", label: "Pricing", icon: "tag" },
+  { href: "/admin/emails", label: "Email", icon: "mail" },
+  { href: "/admin/accounts", label: "User accounts", icon: "users" },
   { href: "/admin/settings", label: "Settings", icon: "shield" },
 ];
 
@@ -24,6 +26,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!admin) redirect("/login");
   // Doctors sign in on the same page but only get their own panel.
   if (admin.role === "provider") redirect("/admin/doctor");
+  // Front-desk staff have their own, smaller panel.
+  if (admin.role === "staff") redirect("/admin/team");
 
   return (
     <StaffShell

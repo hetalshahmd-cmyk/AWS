@@ -44,7 +44,7 @@ export type ArticleEvent = {
   at: string;
   action: ArticleAction;
   by: string;
-  role: "admin" | "provider";
+  role: "admin" | "provider" | "staff";
   note?: string;
   /** Fingerprint of the content at the time — ties approvals to exact text. */
   hash?: string;

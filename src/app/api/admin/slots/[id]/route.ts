@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { adminRoute, readJson } from "@/lib/api-helpers";
+import { readJson, teamRoute } from "@/lib/api-helpers";
 import { deleteSlot, setSlotActive } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export const PATCH = adminRoute(async (request, ctx: Ctx) => {
+export const PATCH = teamRoute(async (request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const body = await readJson<{ active?: boolean }>(request);
 
@@ -19,7 +19,7 @@ export const PATCH = adminRoute(async (request, ctx: Ctx) => {
   return NextResponse.json({ slot });
 });
 
-export const DELETE = adminRoute(async (_request, ctx: Ctx) => {
+export const DELETE = teamRoute(async (_request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const ok = await deleteSlot(id);
   if (!ok) {

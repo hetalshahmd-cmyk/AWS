@@ -6,7 +6,7 @@ import type { InsuranceChoice } from "./practice";
  * "admin" runs the whole back office. "provider" is a doctor: signs in on the
  * same page but only sees their own appointments (Admin → My appointments).
  */
-export type StaffRole = "admin" | "provider";
+export type StaffRole = "admin" | "provider" | "staff";
 
 export type AdminDoc = {
   _id: ObjectId;
@@ -43,7 +43,8 @@ export function serializeAdmin(doc: AdminDoc): Admin {
     lastLoginAt: doc.lastLoginAt?.toISOString() ?? null,
     // Deny by default: "provider" stays a provider even if providerId is
     // missing (getCurrentAdmin then refuses it) — never a silent admin.
-    role: doc.role === "provider" ? "provider" : "admin",
+    // "staff" is the front-desk panel (Admin → User accounts).
+    role: doc.role === "provider" ? "provider" : doc.role === "staff" ? "staff" : "admin",
     providerId: doc.role === "provider" ? (doc.providerId ?? null) : null,
   };
 }

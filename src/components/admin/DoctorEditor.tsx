@@ -558,11 +558,11 @@ function SignIn({ providerId, initialEmail }: { providerId: string; initialEmail
           <span className={LABEL}>{current ? "New password (leave empty to keep)" : "Password"}</span>
           <PasswordInput
             required={!current}
-            minLength={12}
+            minLength={6}
             autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="At least 12 characters"
+            placeholder="At least 6 characters"
             className={FIELD}
           />
         </label>

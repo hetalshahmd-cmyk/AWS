@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { adminRoute, readJson } from "@/lib/api-helpers";
+import { readJson, teamRoute } from "@/lib/api-helpers";
 import {
   getMasterSchedule,
   getWeekSchedule,
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 /** GET ?week=YYYY-MM-DD — that week's schedule (any day of the week works). */
-export const GET = adminRoute(async (request) => {
+export const GET = teamRoute(async (request) => {
   const week = new URL(request.url).searchParams.get("week") ?? arizonaTodayIso();
   if (!ISO.test(week)) return NextResponse.json({ error: "Invalid week" }, { status: 400 });
   return NextResponse.json(await getWeekSchedule(week));
@@ -30,7 +30,7 @@ export const GET = adminRoute(async (request) => {
  * Slots follow at once; booked times are never removed. An empty `rows`
  * closes the week (or, for the fixed schedule, every following week).
  */
-export const PUT = adminRoute(async (request) => {
+export const PUT = teamRoute(async (request) => {
   const body = await readJson<{ week?: string; rows?: unknown; reset?: boolean; master?: boolean }>(
     request,
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePanel } from "./panel-context";
 import { getProviders } from "@/lib/providers";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -84,6 +85,7 @@ export default function SlotsManager({
   /** Adding or deleting times also edits that week's plan — tell the page. */
   onSlotsChanged?: () => void;
 }) {
+  const panel = usePanel();
   const [slots, setSlots] = useState(initial);
   const [bookedBy, setBookedBy] = useState(initialBookedBy);
   const [showStatus, setShowStatus] = useState<StatusFilter>("all");
@@ -577,7 +579,7 @@ export default function SlotsManager({
                                       className="flex flex-wrap items-center gap-1.5"
                                     >
                                       <Link
-                                        href={`/admin/bookings/${holder.id}`}
+                                        href={`${panel.base}/bookings/${holder.id}`}
                                         className="focus-ring font-medium text-wine-deep underline underline-offset-2"
                                       >
                                         {holder.name}

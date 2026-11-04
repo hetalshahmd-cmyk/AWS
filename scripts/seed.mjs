@@ -6,7 +6,7 @@
  *   npm run seed -- --password "…" --doctors --doctor-password "…"   also one login per provider
  *
  * There are no default passwords: every account gets the one you pass, at
- * least 12 characters. Passwords are never printed.
+ * least 6 characters. Passwords are never printed.
  *
  * Provider logins use the same sign-in page (/admin/login) and only see their
  * own appointments: shah@, denton@ and tate@arizonawomen.com.
@@ -37,11 +37,11 @@ const RETIRED = new Set(["arizona@2026", "doctor@2026", "demo@2026"]);
 /** Exits unless the password is long enough and not a retired default. */
 function requirePassword(value, flag) {
   if (!value) {
-    console.error(`Give a password with ${flag} "…" (at least 12 characters). There is no default.`);
+    console.error(`Give a password with ${flag} "…" (at least 6 characters). There is no default.`);
     process.exit(1);
   }
-  if (value.length < 12) {
-    console.error(`${flag}: use at least 12 characters.`);
+  if (value.length < 6) {
+    console.error(`${flag}: use at least 6 characters.`);
     process.exit(1);
   }
   if (RETIRED.has(value.toLowerCase())) {

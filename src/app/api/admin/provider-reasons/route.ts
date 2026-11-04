@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { adminRoute, readJson } from "@/lib/api-helpers";
+import { readJson, teamRoute } from "@/lib/api-helpers";
 import { ALL_VISIT_REASONS } from "@/lib/practice";
 import { getProviderReasons, saveProviderReasons, type ProviderReasons } from "@/lib/repo";
 import { isProviderId } from "@/lib/scheduling";
@@ -10,12 +10,12 @@ export const dynamic = "force-dynamic";
 const ALL = new Set<string>(ALL_VISIT_REASONS);
 
 /** GET — which visit reasons each provider sees. */
-export const GET = adminRoute(async () => {
+export const GET = teamRoute(async () => {
   return NextResponse.json({ reasons: await getProviderReasons() });
 });
 
 /** PUT — save each provider's list. */
-export const PUT = adminRoute(async (request) => {
+export const PUT = teamRoute(async (request) => {
   const body = await readJson<{ reasons?: Record<string, unknown> }>(request);
   const clean: ProviderReasons = {};
   for (const [providerId, list] of Object.entries(body.reasons ?? {})) {

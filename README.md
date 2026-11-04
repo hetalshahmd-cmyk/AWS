@@ -119,7 +119,7 @@ npm run seed -- --password "…" --doctors --doctor-password "…"   # + one log
 ```
 
 There are no default passwords: `--password` (and `--doctor-password` with
-`--doctors`) is required, at least 12 characters, and never printed. The admin
+`--doctors`) is required, at least 6 characters, and never printed. The admin
 email defaults to `admin@arizonawomen.com`. Re-running is safe: it resets that
 admin's password and leaves existing pricing edits alone. `scripts/seed.mjs`
 also creates every index. Appointment slots are not seeded — open them from
@@ -255,6 +255,25 @@ checked against that country's rules with `libphonenumber-js` and saved as
 `country-flag-icons` by `npm run flags` — no third-party requests. The form
 offers Female only.
 
+## User accounts, the front desk and patient emails
+
+- **Admin → User accounts** lists every back-office sign-in: admins, front
+  desk and providers, with role and last sign-in. Passwords are stored as
+  hashes, so nobody can see one; **Reset password** sets a new one, or makes
+  up a strong one (shown once) — the person is signed out everywhere. Admins
+  add front-desk or admin accounts here; doctors get theirs under Doctors.
+- **Front desk** (`role: "staff"`) signs in at `/login` and lands on
+  `/admin/team`: Bookings (view, cancel/restore — not delete), Appointment
+  slots, Patient chats (read only), Email and Website (Modify site). No
+  doctors, accounts, pricing, articles or settings. Their APIs use
+  `teamRoute` (admin or staff); everything else stays `adminRoute`.
+- **Email** (Admin → Email, or **Email patient** on a booking): templates for
+  "appointment time changed" (with the new date and time) and "please call
+  the office", or a blank email; every word can be changed. It goes to the
+  email on the booking — never an address from the browser — one line
+  subject, no Cc/Bcc. Every email is kept in `patient_emails` (who, to whom,
+  when, sent or not). Rate-limited to 60 an hour per account.
+
 ## Patient chat
 
 A **Chat** button on each provider's card and profile opens a private,
@@ -353,7 +372,7 @@ in as a patient. The staff and patient sessions are separate cookies
 redirects to `/login`; `POST /api/admin/session` still works.
 
 Admins manage them from **Settings** (their own and other admins) and
-**Doctors** (each provider's sign-in). Staff passwords are at least 12
+**Doctors** (each provider's sign-in). Staff passwords are at least 6
 characters; a new password bumps `sessionVersion`, which signs that account
 out of every other browser.
 

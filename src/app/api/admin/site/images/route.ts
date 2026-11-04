@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminRoute } from "@/lib/api-helpers";
+import { teamRoute } from "@/lib/api-helpers";
 import { SiteContentError, uploadSiteImage } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * POST (multipart, field "image") — upload a picture for the hero or an
  * office card. It goes live only when the content is saved with its URL.
  */
-export const POST = adminRoute(async (request) => {
+export const POST = teamRoute(async (request) => {
   if (Number(request.headers.get("content-length") ?? 0) > 9 * 1024 * 1024) {
     return NextResponse.json({ error: "That picture is too large (8 MB max)" }, { status: 413 });
   }

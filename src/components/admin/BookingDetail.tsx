@@ -1,4 +1,6 @@
 import Link from "next/link";
+import EmailPatientButton from "./EmailComposer";
+import { bookingForEmail } from "@/lib/email-bookings";
 import { phoneHref } from "@/lib/phone";
 import { insuranceLabel } from "@/lib/practice";
 import { formatLong } from "@/lib/availability";
@@ -82,10 +84,13 @@ export default function BookingDetail({
   booking,
   backHref,
   backLabel,
+  canEmail = false,
 }: {
   booking: Booking;
   backHref: string;
   backLabel: string;
+  /** Admins and front desk can email the patient from here. */
+  canEmail?: boolean;
 }) {
   const intake = booking.intake;
   // "reyes-2026-11-12-photo-id.jpg" — easy to file away.
@@ -115,6 +120,11 @@ export default function BookingDetail({
           {booking.status === "confirmed" ? "Confirmed" : "Cancelled"}
         </span>
       </p>
+      {canEmail && (
+        <div className="mt-3">
+          <EmailPatientButton booking={bookingForEmail(booking)} />
+        </div>
+      )}
 
       <section className="mt-6 rounded-2xl border border-mist bg-white p-6">
         <h2 className="font-display text-[1.25rem] font-semibold">Booking</h2>

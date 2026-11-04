@@ -147,7 +147,27 @@ export async function requireStaff(): Promise<Admin> {
 export async function requireAdminPage(): Promise<Admin> {
   const admin = await getCurrentAdmin().catch(() => null);
   if (!admin) redirect("/login");
-  if (admin.role !== "admin") redirect("/admin/doctor");
+  if (admin.role !== "admin") redirect(panelHome(admin.role));
+  return admin;
+}
+
+/** Where each kind of staff account lands after signing in. */
+export function panelHome(role: Admin["role"]): string {
+  return role === "provider" ? "/admin/doctor" : role === "staff" ? "/admin/team" : "/admin";
+}
+
+/** For the staff (front desk) panel: staff and admins; providers go to their own. */
+export async function requireTeamPage(): Promise<Admin> {
+  const admin = await getCurrentAdmin().catch(() => null);
+  if (!admin) redirect("/login");
+  if (admin.role === "provider") redirect("/admin/doctor");
+  return admin;
+}
+
+/** Admins and front-desk staff — never providers. */
+export async function requireTeam(): Promise<Admin> {
+  const admin = await requireStaff();
+  if (admin.role !== "admin" && admin.role !== "staff") throw new ForbiddenError();
   return admin;
 }
 

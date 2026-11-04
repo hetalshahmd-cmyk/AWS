@@ -19,7 +19,7 @@ const LINKS: StaffLink[] = [
 export default async function DoctorLayout({ children }: { children: React.ReactNode }) {
   const staff = await getCurrentAdmin().catch(() => null);
   if (!staff) redirect("/login");
-  if (staff.role !== "provider") redirect("/admin");
+  if (staff.role !== "provider") redirect(staff.role === "staff" ? "/admin/team" : "/admin");
   const provider = providerById(staff.providerId);
 
   return (

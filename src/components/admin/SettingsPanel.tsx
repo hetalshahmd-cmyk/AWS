@@ -83,11 +83,11 @@ function MyAccount({ me }: { me: Admin }) {
         <label className="block">
           <span className={LABEL}>New password (leave empty to keep)</span>
           <PasswordInput
-            minLength={12}
+            minLength={6}
             autoComplete="new-password"
             value={next}
             onChange={(event) => setNext(event.target.value)}
-            placeholder="At least 12 characters"
+            placeholder="At least 6 characters"
             className={FIELD}
           />
         </label>
@@ -203,15 +203,15 @@ function Admins({ me, initial }: { me: Admin; initial: Admin[] }) {
                 <label className="block min-w-60 flex-1">
                   <span className={LABEL}>New password for {admin.email}</span>
                   <PasswordInput
-                    minLength={12}
+                    minLength={6}
                     autoComplete="new-password"
                     value={resetPassword}
                     onChange={(event) => setResetPassword(event.target.value)}
-                    placeholder="At least 12 characters"
+                    placeholder="At least 6 characters"
                     className={FIELD}
                   />
                 </label>
-                <button type="button" disabled={busy || resetPassword.length < 12} onClick={() => reset(admin.id)} className={BTN_PRIMARY}>
+                <button type="button" disabled={busy || resetPassword.length < 6} onClick={() => reset(admin.id)} className={BTN_PRIMARY}>
                   Save password
                 </button>
               </div>
@@ -233,11 +233,11 @@ function Admins({ me, initial }: { me: Admin; initial: Admin[] }) {
           <span className={LABEL}>Password</span>
           <PasswordInput
             required
-            minLength={12}
+            minLength={6}
             autoComplete="new-password"
             value={form.password}
             onChange={(event) => setForm({ ...form, password: event.target.value })}
-            placeholder="At least 12 characters"
+            placeholder="At least 6 characters"
             className={FIELD}
           />
         </label>
