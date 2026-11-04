@@ -96,6 +96,12 @@ export function ensureIndexes(): Promise<void> {
       db.collection("article_topics").createIndex({ status: 1, createdAt: 1 }),
       db.collection("article_generations").createIndex({ at: -1 }),
       db.collection("article_generations").createIndex({ day: 1, trigger: 1 }),
+      db.collection("chat_conversations").createIndex({ providerId: 1, userId: 1 }, { unique: true }),
+      db.collection("chat_conversations").createIndex({ userId: 1, lastMessageAt: -1 }),
+      db.collection("chat_conversations").createIndex({ providerId: 1, lastMessageAt: -1 }),
+      db.collection("chat_messages").createIndex({ conversationId: 1, createdAt: 1 }),
+      db.collection("chat_messages").createIndex({ conversationId: 1, deletedAt: 1 }),
+      db.collection("chat_messages").createIndex({ "image.fileId": 1 }, { sparse: true }),
       db.collection("rate_limits").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
       // Mongo sweeps expired codes an hour after they lapse.
       db.collection("email_otps").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 3600 }),

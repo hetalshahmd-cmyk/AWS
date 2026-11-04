@@ -20,6 +20,7 @@ type Draft = {
   avatar: string;
   active: boolean;
   bookable: boolean;
+  chatEnabled: boolean;
   badge: string;
   newPatientNote: string;
   about: string;
@@ -42,6 +43,7 @@ function toDraft(provider: Provider | null): Draft {
     avatar: provider?.avatar ?? AVATAR_COLORS[0],
     active: provider?.active ?? true,
     bookable: provider?.bookable ?? true,
+    chatEnabled: provider?.chatEnabled ?? true,
     badge: provider?.badge ?? "",
     newPatientNote: provider?.newPatientNote ?? "",
     // Paragraphs are separated by a blank line.
@@ -127,6 +129,8 @@ export default function DoctorEditor({
       bookable: true,
       badge: null,
       newPatientNote: null,
+      chatEnabled: true,
+      hasLogin: false,
     }),
     name: draft.name,
     cred: draft.cred,
@@ -312,6 +316,25 @@ export default function DoctorEditor({
                   Off: the profile stays on the website with &quot;View profile&quot;, but the Book buttons disappear
                   and patients can&apos;t pick this provider in online booking. Staff can still book them from the
                   admin panel.
+                </span>
+              </span>
+            </label>
+            <label className="flex items-start gap-3 rounded-lg border border-line-strong px-3 py-2.5 md:col-span-2">
+              <input
+                type="checkbox"
+                checked={draft.chatEnabled}
+                onChange={(event) => {
+                  setDraft({ ...draft, chatEnabled: event.target.checked });
+                  setDirty(true);
+                  setOk("");
+                }}
+                className="mt-1 h-4 w-4 accent-wine"
+              />
+              <span className="text-[15px]">
+                <span className="font-semibold">Allow patient chat</span>
+                <span className="block text-[13px] text-plum-soft">
+                  Shows a Chat button on the profile, for signed-in patients. It only appears once this provider has their
+                  own sign-in (below), so someone can answer. Admins can read every chat under Patient chats.
                 </span>
               </span>
             </label>

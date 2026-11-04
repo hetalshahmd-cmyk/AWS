@@ -8,6 +8,7 @@ const LINKS: StaffLink[] = [
   { href: "/admin", label: "Dashboard", icon: "pulse", exact: true },
   { href: "/admin/bookings", label: "Bookings", icon: "cal" },
   { href: "/admin/users", label: "Patients", icon: "users" },
+  { href: "/admin/messages", label: "Patient chats", icon: "mail" },
   { href: "/admin/slots", label: "Appointment slots", icon: "clock" },
   { href: "/admin/doctors", label: "Doctors", icon: "heart" },
   { href: "/admin/site", label: "Modify site", icon: "edit" },

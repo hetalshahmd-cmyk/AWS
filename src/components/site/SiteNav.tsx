@@ -95,7 +95,7 @@ export default function SiteNav() {
                     <Link
                       href={link.href}
                       aria-current={active ? "page" : undefined}
-                      className={`focus-ring group relative py-2 text-[0.95rem] font-medium transition-colors ${
+                      className={`focus-ring group relative whitespace-nowrap py-2 text-[0.95rem] font-medium transition-colors ${
                         active ? "text-plum" : "text-plum-soft hover:text-plum"
                       }`}
                     >

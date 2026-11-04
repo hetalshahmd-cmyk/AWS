@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useSession } from "@/components/auth/session-context";
 import { useBooking } from "@/components/booking-context";
 import { track } from "@/components/analytics/track";
 import { isOfficeId } from "@/lib/scheduling";
@@ -17,6 +19,8 @@ const BOOK =
 const LINE =
   "focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-mist bg-white px-5 text-[15px] font-medium text-plum transition hover:border-plum/40 hover:bg-ivory";
 const LABEL = "text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-stone";
+const CHAT =
+  "focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#00a884]/40 bg-white px-5 text-[15px] font-medium text-[#008069] transition hover:border-[#00a884] hover:bg-[#e7fce3]";
 
 
 /**
@@ -195,6 +199,7 @@ function ProviderCard({
               Book
             </button>
           )}
+          {canChat(provider) && <ChatLink provider={provider} className={`${CHAT} ${provider.bookable ? "col-span-2" : ""}`} />}
         </div>
       </div>
     </article>
@@ -343,14 +348,36 @@ function ProviderProfile({
           )}
           <EcwButton provider={provider} />
         </div>
-        {provider.bookable && (
-          <button type="button" onClick={onBook} className={`${BOOK} max-sm:w-full`}>
-            <Ico name="cal" className="h-4 w-4" />
-            {provider.cta}
-          </button>
-        )}
+        <div className="flex flex-wrap gap-2 max-sm:w-full">
+          {canChat(provider) && <ChatLink provider={provider} className={`${CHAT} max-sm:flex-1`} />}
+          {provider.bookable && (
+            <button type="button" onClick={onBook} className={`${BOOK} max-sm:flex-1`}>
+              <Ico name="cal" className="h-4 w-4" />
+              {provider.cta}
+            </button>
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+/** Shown with a Chat button: chat on, and the provider can sign in to answer. */
+const canChat = (provider: Provider) => provider.chatEnabled && provider.hasLogin;
+
+/**
+ * Chat with this provider: straight into the patient's messages, or through
+ * sign-in first (chats are private, so they need an account).
+ */
+function ChatLink({ provider, className }: { provider: Provider; className: string }) {
+  const { user } = useSession();
+  const target = `/my-bookings/messages?provider=${provider.id}`;
+  const first = provider.name.replace(/^Dr\.?\s+/i, "Dr. ").split(",")[0];
+  return (
+    <Link href={user ? target : `/login?next=${encodeURIComponent(target)}`} className={className} aria-label={`Chat with ${first}`}>
+      <Ico name="mail" className="h-4 w-4" />
+      Chat
+    </Link>
   );
 }
 

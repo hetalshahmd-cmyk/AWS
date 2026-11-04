@@ -29,6 +29,7 @@ export default function PatientSidebar({
   const links: { href: string; label: string; icon: IcoName; exact?: boolean }[] = [
     { href: "/my-bookings", label: tr.panelOverview, icon: "pulse", exact: true },
     { href: "/my-bookings/appointments", label: tr.panelAppointments, icon: "cal" },
+    { href: "/my-bookings/messages", label: tr.panelMessages, icon: "mail" },
     { href: "/my-bookings/profile", label: tr.panelProfile, icon: "users" },
   ];
   const initials = name

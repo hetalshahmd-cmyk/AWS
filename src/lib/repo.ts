@@ -101,7 +101,8 @@ async function collections() {
 
 /* ------------------------------------------------------------ providers -- */
 
-type ProviderDoc = Omit<Provider, "id"> & { _id: string; updatedAt?: Date };
+// hasLogin is worked out on load, never stored.
+type ProviderDoc = Omit<Provider, "id" | "hasLogin"> & { _id: string; updatedAt?: Date };
 
 const PROVIDERS_TTL_MS = 30_000;
 let providersLoading: Promise<Provider[]> | null = null;
@@ -116,6 +117,8 @@ function toProvider({ _id, updatedAt: _ignored, ...rest }: ProviderDoc): Provide
     bookable: rest.bookable ?? true,
     badge: rest.badge ?? null,
     newPatientNote: rest.newPatientNote ?? null,
+    chatEnabled: rest.chatEnabled ?? true,
+    hasLogin: false,
   };
 }
 
@@ -170,7 +173,11 @@ export async function loadProviders(force = false): Promise<Provider[]> {
         .catch(() => undefined);
       docs = await collection.find().sort({ order: 1 }).toArray();
     }
-    const list = docs.map(toProvider);
+    // Who can answer chats: providers with their own staff sign-in.
+    const withLogin = new Set(
+      (await db.collection<AdminDoc>("admins").distinct("providerId", { role: "provider" })).filter(Boolean) as string[],
+    );
+    const list = docs.map((doc) => ({ ...toProvider(doc), hasLogin: withLogin.has(doc._id) }));
     setProviders(list);
     markProvidersLoaded(Date.now());
     return getAllProviders();
@@ -209,7 +216,7 @@ function cleanUrl(value: unknown, field: string): string | null {
 /** Validates and normalises a profile coming from Admin → Doctors. */
 export function cleanProviderInput(
   input: Record<string, unknown>,
-): Omit<Provider, "id" | "order" | "photo" | "photoUrl" | "zocdocCheckedAt"> {
+): Omit<Provider, "id" | "order" | "photo" | "photoUrl" | "zocdocCheckedAt" | "hasLogin"> {
   const name = typeof input.name === "string" ? input.name.trim().slice(0, 80) : "";
   if (name.length < 3) throw new ProviderInputError("Enter the provider's full name");
   const cred = typeof input.cred === "string" ? input.cred.trim().slice(0, 80) : "";
@@ -260,6 +267,7 @@ export function cleanProviderInput(
     bookable: input.bookable !== false,
     badge: optionalText(input.badge, 60),
     newPatientNote: optionalText(input.newPatientNote, 400),
+    chatEnabled: input.chatEnabled !== false,
   };
 }
 
@@ -2293,7 +2301,7 @@ export async function saveSiteContent(input: unknown): Promise<SiteContent> {
 }
 
 /** True if the bytes really are a JPEG, PNG or WebP (not just named like one). */
-function looksLikeImage(data: Buffer): boolean {
+export function looksLikeImage(data: Buffer): boolean {
   return (
     (data[0] === 0xff && data[1] === 0xd8) ||
     data.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47])) ||

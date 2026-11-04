@@ -24,16 +24,19 @@ export default async function LoginPage({
   const raw = (await searchParams).next;
   const next = safeNext(Array.isArray(raw) ? (raw[0] ?? null) : (raw ?? null));
   const booking = next.startsWith("/book");
+  const chat = next.startsWith("/my-bookings/messages");
 
   return (
     <AuthShell>
       <h1 className="font-display text-[clamp(2.2rem,4.5vw,3rem)] font-normal leading-[1.05] tracking-[-0.02em] text-plum">
-        {booking ? "Log in to book" : "Log in"}
+        {booking ? "Log in to book" : chat ? "Log in to chat" : "Log in"}
       </h1>
       <p className="mt-2 text-plum-soft">
         {booking
           ? "Appointments are held in your name, so we need an account first. It takes about a minute — or call us and we will book it for you."
-          : "See your upcoming visits, and cancel or reschedule in a couple of clicks."}
+          : chat
+            ? "Chats with your provider are private, so they need an account. New here? Register — it takes about a minute."
+            : "See your upcoming visits, and cancel or reschedule in a couple of clicks."}
       </p>
       <AuthForm next={next} />
 

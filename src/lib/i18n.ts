@@ -313,6 +313,7 @@ const en = {
   // patient panel
   panelOverview: "Overview",
   panelAppointments: "Appointments",
+  panelMessages: "Messages",
   panelProfile: "Profile",
   signOut: "Log out",
   toDoTitle: "To do",
@@ -641,6 +642,7 @@ const es: Dict = {
   timesFor: (name) => `Horarios disponibles de ${name}`,
   panelOverview: "Resumen",
   panelAppointments: "Citas",
+  panelMessages: "Mensajes",
   panelProfile: "Perfil",
   signOut: "Cerrar sesión",
   toDoTitle: "Pendiente",

@@ -255,6 +255,32 @@ checked against that country's rules with `libphonenumber-js` and saved as
 `country-flag-icons` by `npm run flags` — no third-party requests. The form
 offers Female only.
 
+## Patient chat
+
+A **Chat** button on each provider's card and profile opens a private,
+WhatsApp-style chat with that provider (`/my-bookings/messages`). Patients
+need an account; signed-out visitors go through `/login` first.
+
+- **Who:** the patient and that provider. A Chat button appears only when the
+  provider has **Allow patient chat** on (Admin → Doctors) *and* their own
+  sign-in, so someone can answer. Providers answer under **Messages** in
+  their panel. Admins read every chat under **Patient chats**; they can't
+  write in one, and reading doesn't mark anything read.
+- **Features:** text and pictures (preview, full size, download), date
+  dividers, ✓ sent / ✓✓ delivered / blue ✓✓ read, "typing…", online and last
+  seen, unread counts, search, delete for everyone within an hour, retry when
+  sending fails, Enter to send. English and Spanish for patients.
+- **Live updates** by polling every 3 seconds while a chat is open (serverless
+  hosting has no WebSockets); the chat list every 12 seconds.
+- **Storage:** `chat_conversations`, `chat_messages`, pictures in GridFS
+  `chat_files`. Nothing is removed: a deleted message is hidden from the
+  patient and provider but kept, and admins see it marked deleted.
+- **Emails** say only "you have a new message" with a link — never the
+  message — at most every 15 minutes per chat, and not while the person is
+  online.
+- Patients see a note that chat isn't for emergencies (call 911) and is
+  answered during office hours. Sending is rate-limited (30 a minute).
+
 ## Emails, reminders, check-in and Spanish
 
 - **Confirmation** is emailed as soon as a booking is made, with the

@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 const LINKS: StaffLink[] = [
   { href: "/admin/doctor", label: "My appointments", icon: "cal", exact: true },
+  { href: "/admin/doctor/messages", label: "Messages", icon: "mail" },
   { href: "/admin/doctor/reviews", label: "Article reviews", icon: "check" },
 ];
 

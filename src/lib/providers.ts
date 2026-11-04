@@ -54,6 +54,13 @@ export type Provider = {
   badge: string | null;
   /** A line under the description on the card and profile, e.g. who new patients see first. */
   newPatientNote: string | null;
+  /** Off: no Chat button and no new chat messages to this provider. */
+  chatEnabled: boolean;
+  /**
+   * Worked out when providers load, never saved: whether this provider has a
+   * staff sign-in to read and answer chats. No sign-in, no Chat button.
+   */
+  hasLogin: boolean;
   order: number;
 };
 
@@ -126,6 +133,8 @@ export const DEFAULT_PROVIDERS: Provider[] = seedProviders.map((provider, order)
   cta: provider.cta,
   active: true,
   ...seedRouting(provider),
+  chatEnabled: true,
+  hasLogin: false,
   order,
 }));
 
