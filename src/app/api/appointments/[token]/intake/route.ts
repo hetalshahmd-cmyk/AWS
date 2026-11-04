@@ -18,12 +18,6 @@ const TEXT_FIELDS = [
   ["emergencyPhone", 30],
   ["memberId", 60],
   ["groupNumber", 60],
-  ["allergies", 600],
-  ["medications", 800],
-  ["conditions", 800],
-  ["surgeries", 800],
-  ["lmp", 20],
-  ["pregnancies", 10],
 ] as const;
 
 const PHOTOS = [
@@ -69,10 +63,17 @@ export async function POST(request: Request, ctx: Ctx) {
   const text = Object.fromEntries(
     TEXT_FIELDS.map(([key, max]) => [key, String(form.get(key) ?? "").trim().slice(0, max)]),
   ) as Record<(typeof TEXT_FIELDS)[number][0], string>;
-  const pregnantRaw = String(form.get("pregnant") ?? "");
-  const pregnant = (
-    ["yes", "no", "not-sure"].includes(pregnantRaw) ? pregnantRaw : ""
-  ) as Intake["pregnant"];
+  // The health questions left the form (Nov 2026 — asked at the visit
+  // instead). Answers saved before then are kept exactly as they were.
+  const health = {
+    allergies: previous?.allergies ?? "",
+    medications: previous?.medications ?? "",
+    conditions: previous?.conditions ?? "",
+    surgeries: previous?.surgeries ?? "",
+    lmp: previous?.lmp ?? "",
+    pregnant: previous?.pregnant ?? "",
+    pregnancies: previous?.pregnancies ?? "",
+  } satisfies Pick<Intake, "allergies" | "medications" | "conditions" | "surgeries" | "lmp" | "pregnant" | "pregnancies">;
 
   // A new photo replaces the old one; no new photo keeps what's on file.
   const photoIds: Record<string, string | null> = {};
@@ -96,7 +97,7 @@ export async function POST(request: Request, ctx: Ctx) {
 
   const intake: Intake = {
     ...text,
-    pregnant,
+    ...health,
     cardFrontId: photoIds.cardFrontId,
     cardBackId: photoIds.cardBackId,
     photoIdId: photoIds.photoIdId,

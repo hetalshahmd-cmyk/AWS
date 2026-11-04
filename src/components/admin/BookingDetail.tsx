@@ -16,28 +16,55 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function Photo({ id, label }: { id: string | null; label: string }) {
+function Photo({ id, label, name }: { id: string | null; label: string; name: string }) {
   return (
     <figure className="rounded-xl border border-mist bg-white p-3">
       <figcaption className="text-[13px] font-semibold text-plum-soft">{label}</figcaption>
       {id ? (
-        <a
-          href={`/api/admin/intake-files/${id}`}
-          target="_blank"
-          rel="noreferrer"
-          className="focus-ring mt-2 block"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- private, uncached admin image */}
-          <img
-            src={`/api/admin/intake-files/${id}`}
-            alt={label}
-            className="max-h-64 w-full rounded-lg bg-shell object-contain"
-          />
-        </a>
+        <>
+          <a
+            href={`/api/admin/intake-files/${id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="focus-ring mt-2 block"
+            aria-label={`${label} — open full size`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- private, uncached admin image */}
+            <img
+              src={`/api/admin/intake-files/${id}`}
+              alt={label}
+              className="max-h-64 w-full rounded-lg bg-shell object-contain"
+            />
+          </a>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <a
+              href={`/api/admin/intake-files/${id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="focus-ring inline-flex min-h-9 items-center rounded-lg border border-line-strong px-3 text-[13px] font-semibold text-plum transition hover:bg-shell"
+            >
+              Open full size
+            </a>
+            <a
+              href={`/api/admin/intake-files/${id}?download=${encodeURIComponent(name)}`}
+              download
+              className="focus-ring inline-flex min-h-9 items-center rounded-lg bg-wine px-3 text-[13px] font-semibold text-white transition hover:bg-wine-deep"
+            >
+              Download
+            </a>
+          </div>
+        </>
       ) : (
         <p className="mt-2 text-[14px] text-plum-soft">Not uploaded</p>
       )}
     </figure>
+  );
+}
+
+/** True when an older check-in has any answer to the health questions. */
+function hasHealthAnswers(intake: NonNullable<Booking["intake"]>): boolean {
+  return [intake.allergies, intake.medications, intake.conditions, intake.surgeries, intake.lmp, intake.pregnant, intake.pregnancies].some(
+    (value) => typeof value === "string" && value.trim() !== "",
   );
 }
 
@@ -61,6 +88,14 @@ export default function BookingDetail({
   backLabel: string;
 }) {
   const intake = booking.intake;
+  // "reyes-2026-11-12-photo-id.jpg" — easy to file away.
+  const fileBase =
+    `${booking.patient.lastName}-${booking.date}`
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "check-in";
   const provider = providerById(booking.providerId);
   const office = officeById(booking.officeId);
   const p = booking.patient;
@@ -143,7 +178,7 @@ export default function BookingDetail({
         {intake?.submittedAt && (
           <>
             <dl className="mt-2 divide-y divide-mist">
-              <Row label="Mobile phone" value={intake.phone} />
+              <Row label="Phone (check-in)" value={intake.phone} />
               <Row
                 label="Address"
                 value={[
@@ -159,22 +194,32 @@ export default function BookingDetail({
               />
               <Row label="Member ID" value={intake.memberId} />
               <Row label="Group number" value={intake.groupNumber} />
-              <Row label="Allergies" value={intake.allergies} />
-              <Row label="Medications" value={intake.medications} />
-              <Row label="Conditions" value={intake.conditions} />
-              <Row label="Past surgeries" value={intake.surgeries} />
-              <Row label="Last menstrual period" value={intake.lmp} />
-              <Row label="Currently pregnant" value={PREGNANT[intake.pregnant] ?? ""} />
-              <Row label="Past pregnancies" value={intake.pregnancies} />
             </dl>
+            {hasHealthAnswers(intake) && (
+              <>
+                <h3 className="mt-5 text-[15px] font-semibold">Health information (from an earlier check-in form)</h3>
+                <p className="text-[13px] text-plum-soft">
+                  The check-in form no longer asks these questions; answers given before the change are kept.
+                </p>
+                <dl className="mt-1 divide-y divide-mist">
+                  <Row label="Allergies" value={intake.allergies} />
+                  <Row label="Medications" value={intake.medications} />
+                  <Row label="Conditions" value={intake.conditions} />
+                  <Row label="Past surgeries" value={intake.surgeries} />
+                  <Row label="Last menstrual period" value={intake.lmp} />
+                  <Row label="Currently pregnant" value={PREGNANT[intake.pregnant] ?? ""} />
+                  <Row label="Past pregnancies" value={intake.pregnancies} />
+                </dl>
+              </>
+            )}
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {booking.insurance && (
                 <>
-                  <Photo id={intake.cardFrontId} label="Insurance card — front" />
-                  <Photo id={intake.cardBackId} label="Insurance card — back" />
+                  <Photo id={intake.cardFrontId} label="Insurance card — front" name={`${fileBase}-insurance-front`} />
+                  <Photo id={intake.cardBackId} label="Insurance card — back" name={`${fileBase}-insurance-back`} />
                 </>
               )}
-              <Photo id={intake.photoIdId} label="Photo ID" />
+              <Photo id={intake.photoIdId} label="Photo ID" name={`${fileBase}-photo-id`} />
             </div>
           </>
         )}

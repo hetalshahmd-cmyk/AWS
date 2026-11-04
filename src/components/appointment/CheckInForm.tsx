@@ -1,14 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LanguageToggle, useLang } from "@/components/lang-context";
 import Ico from "@/components/site/Ico";
 import type { Intake } from "@/lib/models";
-import { DateInput } from "@/components/form-fields";
 
-/** What the form starts from: the saved check-in, minus the photo ids. */
-export type CheckInInitial = Omit<Intake, "cardFrontId" | "cardBackId" | "photoIdId" | "submittedAt"> & {
+/**
+ * What the form starts from: the saved check-in, minus the photo ids and the
+ * health answers (no longer asked, so never sent to the browser).
+ */
+export type CheckInInitial = Omit<
+  Intake,
+  | "cardFrontId"
+  | "cardBackId"
+  | "photoIdId"
+  | "submittedAt"
+  | "allergies"
+  | "medications"
+  | "conditions"
+  | "surgeries"
+  | "lmp"
+  | "pregnant"
+  | "pregnancies"
+> & {
   hasCardFront: boolean;
   hasCardBack: boolean;
   hasPhotoId: boolean;
@@ -41,6 +56,11 @@ async function shrink(file: File): Promise<Blob> {
   }
 }
 
+/**
+ * One photo: take it with the camera or pick one already on the phone (or
+ * computer), then see it before sending. On a computer "Take photo" opens
+ * the file picker too.
+ */
 function PhotoField({
   name,
   label,
@@ -55,26 +75,55 @@ function PhotoField({
   chosen: File | null;
 }) {
   const { tr } = useLang();
+  // A local link to the chosen picture, released when it changes.
+  const preview = useMemo(() => (chosen ? URL.createObjectURL(chosen) : null), [chosen]);
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview);
+  }, [preview]);
+  // Some formats (HEIC on most computers) can't be shown; then the name is.
+  const [failed, setFailed] = useState<string | null>(null);
+  const previewFailed = failed !== null && failed === preview;
+
+  const BUTTON =
+    "focus-within:outline-2 focus-within:outline-wine inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-plum/20 bg-white px-4 text-[14px] font-medium text-plum transition hover:border-plum";
+  const pick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onFile(event.target.files?.[0] ?? null);
+    // Picking the same picture again after removing it still counts.
+    event.target.value = "";
+  };
+
   return (
     <div className="rounded-2xl border border-mist bg-white p-4">
       <p className="text-[14px] font-medium text-plum">{label}</p>
-      <div className="mt-2 flex flex-wrap items-center gap-3">
-        <label className="focus-within:outline-2 focus-within:outline-wine inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-plum/20 px-4 text-[14px] font-medium text-plum transition hover:border-plum">
-          {chosen || hasExisting ? tr.replacePhoto : tr.choosePhoto}
-          <input
-            type="file"
-            name={name}
-            accept="image/*"
-            capture="environment"
-            className="sr-only"
-            onChange={(event) => onFile(event.target.files?.[0] ?? null)}
-          />
+
+      {chosen && preview && !previewFailed ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a local preview of the patient's own photo
+        <img
+          src={preview}
+          alt={`${label} — ${tr.photoPreview}`}
+          onError={() => setFailed(preview)}
+          className="mt-3 max-h-48 w-full rounded-xl border border-mist bg-shell object-contain"
+        />
+      ) : chosen ? (
+        <p className="mt-3 truncate text-[14px] text-sage-ink">✓ {chosen.name}</p>
+      ) : hasExisting ? (
+        <p className="mt-3 text-[14px] text-sage-ink">✓ {tr.photoOnFile}</p>
+      ) : null}
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <label className={BUTTON}>
+          {chosen || hasExisting ? tr.retakePhoto : tr.takePhoto}
+          <input type="file" name={`${name}-camera`} accept="image/*" capture="environment" className="sr-only" onChange={pick} />
         </label>
-        {chosen ? (
-          <span className="truncate text-[14px] text-sage-ink">✓ {chosen.name}</span>
-        ) : hasExisting ? (
-          <span className="text-[14px] text-sage-ink">✓ {tr.photoOnFile}</span>
-        ) : null}
+        <label className={BUTTON}>
+          {tr.chooseFromPhone}
+          <input type="file" name={name} accept="image/*" className="sr-only" onChange={pick} />
+        </label>
+        {chosen && (
+          <button type="button" onClick={() => onFile(null)} className="focus-ring text-[14px] font-medium text-plum-soft link-underline">
+            {tr.removePhoto}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -120,13 +169,6 @@ export default function CheckInForm({
         "emergencyPhone",
         "memberId",
         "groupNumber",
-        "allergies",
-        "medications",
-        "conditions",
-        "surgeries",
-        "lmp",
-        "pregnant",
-        "pregnancies",
       ] as const) {
         body.set(key, String(form[key] ?? ""));
       }
@@ -266,64 +308,6 @@ export default function CheckInForm({
             chosen={files.photoId}
             onFile={(file) => setFiles({ ...files, photoId: file })}
           />
-        </div>
-      </fieldset>
-
-      <fieldset className="mt-10">
-        <legend className="font-display text-[1.35rem] text-plum">{tr.healthSection}</legend>
-        <div className="mt-4 grid gap-4">
-          {(
-            [
-              ["allergies", tr.allergies],
-              ["medications", tr.medications],
-              ["conditions", tr.conditions],
-              ["surgeries", tr.surgeries],
-            ] as const
-          ).map(([key, label]) => (
-            <label key={key} className="block">
-              <span className={LABEL}>{label}</span>
-              <textarea rows={2} value={form[key]} onChange={set(key)} className={`${FIELD} resize-y`} />
-            </label>
-          ))}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block">
-              <span className={LABEL}>{tr.lmp}</span>
-              <DateInput value={form.lmp} onChange={set("lmp")} className={FIELD} />
-            </label>
-            <label className="block">
-              <span className={LABEL}>{tr.pregnancies}</span>
-              <input inputMode="numeric" value={form.pregnancies} onChange={set("pregnancies")} className={FIELD} />
-            </label>
-          </div>
-          <fieldset>
-            <legend className={LABEL}>{tr.pregnant}</legend>
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  ["yes", tr.yes],
-                  ["no", tr.no],
-                  ["not-sure", tr.notSure],
-                ] as const
-              ).map(([value, label]) => (
-                <label
-                  key={value}
-                  className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-[15px] transition ${
-                    form.pregnant === value ? "border-wine bg-wine-soft text-wine-deep" : "border-mist bg-white text-plum"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="pregnant"
-                    value={value}
-                    checked={form.pregnant === value}
-                    onChange={() => setForm({ ...form, pregnant: value })}
-                    className="accent-wine"
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </fieldset>
         </div>
       </fieldset>
 
