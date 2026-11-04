@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { phoneHref } from "@/lib/phone";
+import { insuranceLabel } from "@/lib/practice";
 import { formatLong } from "@/lib/availability";
 import type { Booking } from "@/lib/models";
 import { officeById, providerById } from "@/lib/scheduling";
@@ -83,6 +85,18 @@ export default function BookingDetail({
         <h2 className="font-display text-[1.25rem] font-semibold">Booking</h2>
         <dl className="mt-2 divide-y divide-mist">
           <Row label="Email" value={p.email} />
+          <Row
+            label="Mobile phone"
+            value={
+              p.phone ? (
+                <a href={phoneHref(p.phone)} className="font-medium text-wine link-underline">
+                  {p.phone}
+                </a>
+              ) : (
+                "Not given — booked before the form asked for a phone number"
+              )
+            }
+          />
           <Row label="Date of birth" value={p.dob} />
           <Row label="Sex" value={p.sex} />
           {p.genderIdentity && <Row label="Gender identity" value={p.genderIdentity} />}
@@ -94,12 +108,12 @@ export default function BookingDetail({
           />
           <Row
             label="Insurance"
-            value={
-              booking.insurance
-                ? `${booking.insurance.carrier} · ${booking.insurance.plan}`
-                : "Self-pay"
-            }
+            value={booking.insurance ? insuranceLabel(booking.insurance) : "Self Pay"}
           />
+          {booking.insurance?.unlisted && (
+            <Row label="Insurance check" value="Not on our list — typed in by the patient. Verify coverage before the visit." />
+          )}
+          {booking.insurance?.memberId && <Row label="Member ID" value={booking.insurance.memberId} />}
           <Row
             label="Booked"
             value={`${new Date(booking.createdAt).toLocaleString("en-US", { timeZone: "America/Phoenix" })} · ${VIA[booking.via ?? "account"] ?? VIA.account} · ${booking.lang === "es" ? "Spanish" : "English"}`}

@@ -11,7 +11,7 @@ const TAG_ACCENT: Record<string, { chip: string; glow: string }> = {
 };
 
 /**
- * A price card exactly as patients see it on /pricing. Admin → Pricing uses
+ * A price card exactly as patients see it on /self-pay. Admin → Pricing uses
  * the same card, so what the front desk sees is what goes live.
  */
 export default function PriceCard({

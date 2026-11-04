@@ -69,6 +69,29 @@ export async function run({ call, check, base, admin, doctor }) {
   check("bad links, pictures, focus points, phones and missing fields refused", refused.every((r) => r.status === 400), refused.map((r) => r.status).join(","));
   check("an upload needs a description", (await bad((c) => (c.offices[0].image.alt = ""))).status === 400);
 
+  // Office hours: Monday to Friday, 8:00 am – 5:00 pm, whatever the appointment schedule says.
+  const weekdays = (office) => office.hours.filter((day) => day.open);
+  check(
+    "both offices start open Monday to Friday, 8:00 am – 5:00 pm",
+    original.offices.every((office) => weekdays(office).length === 5 && weekdays(office).every((day) => day.open === "8:00 am" && day.close === "5:00 pm" && day.weekday >= 1 && day.weekday <= 5)),
+  );
+  const contactHours = (await pageUntil(call, "/contact", (t) => t.includes("Office hours · Mon – Fri"))).replace(/&#x27;/g, "'");
+  check("the Contact page shows Office hours · Mon – Fri, 8:00 am – 5:00 pm", contactHours.includes("Office hours · Mon – Fri") && contactHours.includes("8:00 am – 5:00 pm"));
+  check("…and no 4:15 anywhere on it", !contactHours.includes("4:15"));
+  const home = await call(null, "GET", "/");
+  check("the footer says Office hours, 8:00 am – 5:00 pm, and no 4:15", home.text.includes("Office hours") && home.text.includes("8:00 am – 5:00 pm") && !home.text.includes("4:15"));
+  const saturday = structuredClone(original);
+  saturday.offices[1].hours = saturday.offices[1].hours.map((day) => (day.weekday === 6 ? { weekday: 6, open: "9:00 AM", close: "1:00 pm" } : day));
+  const withSaturday = await call(A, "PUT", "/api/admin/site", saturday);
+  check("Saturday hours can be added for one office", withSaturday.status === 200 && withSaturday.data.content.offices[1].hours.find((d) => d.weekday === 6).open === "9:00 am");
+  check("…and show on its card", (await pageUntil(call, "/contact", (t) => t.includes("9:00 am – 1:00 pm"))).includes("9:00 am – 1:00 pm"));
+  const badHours = await Promise.all([
+    bad((c) => (c.offices[0].hours[0] = { weekday: 1, open: "5:00 pm", close: "8:00 am" })),
+    bad((c) => (c.offices[0].hours[0] = { weekday: 1, open: "8:00 am", close: "" })),
+    bad((c) => (c.offices[0].hours[0] = { weekday: 1, open: "25:00", close: "5:00 pm" })),
+  ]);
+  check("closing before opening, a missing time or a made-up time is refused", badHours.every((r) => r.status === 400), badHours.map((r) => r.status).join(","));
+
   // Putting the original back removes the upload nobody uses any more.
   check("put the original back", (await call(A, "PUT", "/api/admin/site", original)).status === 200);
   check("…the unused upload is deleted", (await fetch(base + up.data.url)).status === 404);

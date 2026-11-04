@@ -36,12 +36,14 @@ import {
   arizonaTodayIso,
   cleanSchedule,
   DEFAULT_WEEKLY_SCHEDULE,
-  hoursFromSchedule,
   type OfficeHours,
   isOfficeId,
   isProviderId,
   mondayOf,
+  normaliseTime,
   providerIds,
+  WEEK_ORDER,
+  WEEKDAY_NAMES,
   type OfficeId,
   type ProviderId,
   type ScheduleRow,
@@ -56,6 +58,7 @@ import {
   initialsOf,
   markProvidersLoaded,
   providersLoadedAt,
+  seedRouting,
   setProviders,
   type Provider,
 } from "./providers";
@@ -63,12 +66,14 @@ import { photos, type PhotoKey } from "./photos";
 import { prices } from "./site";
 import {
   DEFAULT_SITE_CONTENT,
+  defaultOpeningHours,
   getSiteContent,
   markSiteContentLoaded,
   OFFICE_IDS,
   setSiteContent,
   siteContentLoadedAt,
   type ImageRef,
+  type OpeningDay,
   type SiteContent,
 } from "./site-content";
 
@@ -103,7 +108,15 @@ let providersLoading: Promise<Provider[]> | null = null;
 
 function toProvider({ _id, updatedAt: _ignored, ...rest }: ProviderDoc): Provider {
   void _ignored;
-  return { id: _id, ...rest, zocdocCheckedAt: rest.zocdocCheckedAt ?? null };
+  return {
+    id: _id,
+    ...rest,
+    zocdocCheckedAt: rest.zocdocCheckedAt ?? null,
+    // Profiles saved before these settings existed.
+    bookable: rest.bookable ?? true,
+    badge: rest.badge ?? null,
+    newPatientNote: rest.newPatientNote ?? null,
+  };
 }
 
 /**
@@ -132,6 +145,24 @@ export async function loadProviders(force = false): Promise<Provider[]> {
               filter: { _id: id },
               update: { $setOnInsert: { ...rest, order: docs.length ? after + i : rest.order, updatedAt: new Date() } },
               upsert: true,
+            },
+          })),
+          { ordered: false },
+        )
+        .catch(() => undefined);
+      docs = await collection.find().sort({ order: 1 }).toArray();
+    }
+    // Profiles from before the booking settings existed get them once, from
+    // the seed list (Dr. Erickson and Dr. Cook: no direct booking). Only
+    // where the setting is missing — an admin's choice is never overwritten.
+    const unset = docs.filter((doc) => doc.bookable === undefined);
+    if (unset.length) {
+      await collection
+        .bulkWrite(
+          unset.map((doc) => ({
+            updateOne: {
+              filter: { _id: doc._id, bookable: { $exists: false } },
+              update: { $set: seedRouting(DEFAULT_PROVIDERS.find((provider) => provider.id === doc._id) ?? {}) },
             },
           })),
           { ordered: false },
@@ -207,6 +238,8 @@ export function cleanProviderInput(
     ? (input.avatar as string)
     : AVATAR_COLORS[0];
   const cta = typeof input.cta === "string" && input.cta.trim() ? input.cta.trim().slice(0, 40) : ctaFor(name);
+  const optionalText = (value: unknown, max: number) =>
+    typeof value === "string" && value.replace(/\s+/g, " ").trim() ? value.replace(/\s+/g, " ").trim().slice(0, max) : null;
   return {
     name,
     cred,
@@ -224,6 +257,9 @@ export function cleanProviderInput(
     focus: cleanLines(input.focus, 12, 80),
     cta,
     active: input.active !== false,
+    bookable: input.bookable !== false,
+    badge: optionalText(input.badge, 60),
+    newPatientNote: optionalText(input.newPatientNote, 400),
   };
 }
 
@@ -878,6 +914,12 @@ export async function createAdmin(input: {
 }
 
 /** Checks the password against the stored hash and stamps the login. */
+/** Is there a staff (admin or provider) account for this email? */
+export async function staffAccountExists(email: string): Promise<boolean> {
+  const { admins } = await collections();
+  return (await admins.countDocuments({ email: email.trim().toLowerCase() }, { limit: 1 })) > 0;
+}
+
 export async function authenticateAdmin(
   email: string,
   password: string,
@@ -1456,10 +1498,22 @@ export async function getWeekSchedule(anyDayOfWeek: string): Promise<WeekSchedul
  * site shows as "hours". Null when the database can't be reached, so a page
  * can still render (it says to call instead).
  */
+/**
+ * Office hours for the site, from Admin → Modify site (each office card). Not
+ * the appointment schedule: the last appointment can be before closing time.
+ */
 export async function getOfficeHours(): Promise<OfficeHours | null> {
   try {
-    const { rows } = await getWeekSchedule(arizonaTodayIso());
-    return hoursFromSchedule(rows);
+    const content = await loadSiteContent();
+    return Object.fromEntries(
+      content.offices.map((office) => [
+        office.id,
+        WEEK_ORDER.map((weekday) => {
+          const day = office.hours.find((item) => item.weekday === weekday);
+          return { weekday, first: day?.open ?? null, last: day?.close ?? null };
+        }),
+      ]),
+    ) as OfficeHours;
   } catch (error) {
     console.error("office hours unavailable", error);
     return null;
@@ -2066,7 +2120,16 @@ export async function loadSiteContent(force = false): Promise<SiteContent> {
         .catch(() => undefined);
       doc = await collection.findOne({ _id: SITE_CONTENT_DOC });
     }
-    const content: SiteContent = doc ? { hero: doc.hero, offices: doc.offices } : DEFAULT_SITE_CONTENT;
+    const content: SiteContent = doc
+      ? {
+          hero: doc.hero,
+          // Offices saved before office hours existed get the practice's hours.
+          offices: doc.offices.map((office) => ({
+            ...office,
+            hours: Array.isArray(office.hours) && office.hours.length === 7 ? office.hours : defaultOpeningHours(),
+          })),
+        }
+      : DEFAULT_SITE_CONTENT;
     setSiteContent(content);
     markSiteContentLoaded(Date.now());
     return content;
@@ -2165,9 +2228,33 @@ export function cleanSiteContent(input: unknown): SiteContent {
         maps,
         phone: phone || null,
         image: cleanImage(item.image, `${label} picture`),
+        hours: cleanOpeningHours(item.hours, label),
       };
     }),
   };
+}
+
+const clockMinutes = (time: string) => {
+  const [, h, m, half] = /^(\d{1,2}):(\d{2}) (am|pm)$/.exec(time) ?? [];
+  return ((Number(h) % 12) + (half === "pm" ? 12 : 0)) * 60 + Number(m);
+};
+
+/** Seven days, Monday first; a day is closed or has an opening and a closing time. */
+function cleanOpeningHours(value: unknown, label: string): OpeningDay[] {
+  // An editor from before office hours existed sends none: keep the practice's hours.
+  if (!Array.isArray(value)) return defaultOpeningHours();
+  return defaultOpeningHours().map(({ weekday }) => {
+    const day = (value.find((item) => Number((item as Record<string, unknown>)?.weekday) === weekday) ?? {}) as Record<string, unknown>;
+    const name = WEEKDAY_NAMES[weekday];
+    const rawOpen = typeof day.open === "string" ? day.open.trim() : "";
+    const rawClose = typeof day.close === "string" ? day.close.trim() : "";
+    if (!rawOpen && !rawClose) return { weekday, open: null, close: null };
+    const open = normaliseTime(rawOpen);
+    const close = normaliseTime(rawClose);
+    if (!open || !close) throw new SiteContentError(`${label}, ${name}: enter both times like "8:00 am" and "5:00 pm", or mark the day closed`);
+    if (clockMinutes(close) <= clockMinutes(open)) throw new SiteContentError(`${label}, ${name}: closing time must be after opening time`);
+    return { weekday, open, close };
+  });
 }
 
 function uploadedIds(content: SiteContent): Set<string> {

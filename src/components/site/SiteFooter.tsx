@@ -132,9 +132,9 @@ export default async function SiteFooter() {
             </div>
 
             <div>
-              <h3 className={HEADING}>Hours this week</h3>
+              <h3 className={HEADING}>Office hours</h3>
               {hoursEmpty(hours) || !hours ? (
-                <p className="mt-5 text-[0.95rem]">Call {site.phone} for this week&apos;s times.</p>
+                <p className="mt-5 text-[0.95rem]">Call {site.phone} for our hours.</p>
               ) : (
                 <div className="mt-5 space-y-4">
                   {getOffices().map((location) => (

@@ -1,5 +1,8 @@
 "use client";
 
+import type { CountryCode } from "libphonenumber-js/min";
+import PhoneInput from "@/components/PhoneInput";
+import { DEFAULT_PHONE_COUNTRY } from "@/lib/phone";
 import { getProviders } from "@/lib/providers";
 import { useEffect, useRef, useState } from "react";
 import { DateInput } from "@/components/form-fields";
@@ -21,6 +24,8 @@ type Form = {
   lastName: string;
   email: string;
   dob: string;
+  phone: string;
+  phoneCountry: CountryCode;
   sex: string;
   patientType: "new" | "existing";
   carrier: string;
@@ -49,6 +54,8 @@ export default function BookForPatient({
     lastName: "",
     email: "",
     dob: "",
+    phone: "",
+    phoneCountry: DEFAULT_PHONE_COUNTRY,
     sex: "Female",
     patientType: "existing",
     carrier: "",
@@ -124,6 +131,8 @@ export default function BookForPatient({
             email: form.email,
             dob: form.dob,
             sex: form.sex,
+            phone: form.phone,
+            phoneCountry: form.phoneCountry,
           },
         }),
       });
@@ -329,8 +338,21 @@ export default function BookForPatient({
                   className={FIELD}
                 >
                   <option>Female</option>
-                  <option>Male</option>
                 </select>
+              </div>
+              <div>
+                <label className={LABEL} htmlFor="bp-phone">
+                  Mobile phone
+                </label>
+                <PhoneInput
+                  id="bp-phone"
+                  required
+                  country={form.phoneCountry}
+                  number={form.phone}
+                  onChange={({ country, number }) => setForm((current) => ({ ...current, phoneCountry: country, phone: number }))}
+                  countryLabel="Country code"
+                  inputClassName={FIELD}
+                />
               </div>
               <div>
                 <label className={LABEL} htmlFor="bp-type">
@@ -375,7 +397,7 @@ export default function BookForPatient({
                   }}
                   className={FIELD}
                 >
-                  <option value="">Self-pay</option>
+                  <option value="">Self Pay</option>
                   {carriers.map((carrier) => (
                     <option key={carrier.name} value={carrier.name}>
                       {carrier.name}

@@ -1,5 +1,6 @@
 "use client";
 
+import { insuranceLabel } from "@/lib/practice";
 import { getAllProviders } from "@/lib/providers";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -36,7 +37,7 @@ export default function BookingsTable({ initial }: { initial: Booking[] }) {
       if (provider !== "all" && booking.providerId !== provider) return false;
       if (!term) return true;
       const haystack =
-        `${booking.patient.firstName} ${booking.patient.lastName} ${booking.patient.email} ${booking.reason} ${booking.date} ${shortProviderName(booking.providerId)} ${officeById(booking.officeId)?.area ?? ""}`.toLowerCase();
+        `${booking.patient.firstName} ${booking.patient.lastName} ${booking.patient.email} ${booking.patient.phone ?? ""} ${booking.reason} ${booking.date} ${shortProviderName(booking.providerId)} ${officeById(booking.officeId)?.area ?? ""}`.toLowerCase();
       return haystack.includes(term);
     });
   }, [bookings, filter, query, todayIso, office, provider]);
@@ -197,6 +198,7 @@ export default function BookingsTable({ initial }: { initial: Booking[] }) {
                       )}
                     </p>
                     <p className="text-[12px] text-plum-soft">{booking.patient.email}</p>
+                    {booking.patient.phone && <p className="text-[12px] text-plum-soft">{booking.patient.phone}</p>}
                     <p className="text-[12px] text-plum-soft">DOB {booking.patient.dob}</p>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
@@ -212,8 +214,8 @@ export default function BookingsTable({ initial }: { initial: Booking[] }) {
                     <p>{booking.reason}</p>
                     <p className="text-[12px] text-plum-soft">
                       {booking.insurance
-                        ? `${booking.insurance.carrier} · ${booking.insurance.plan}`
-                        : "Self-pay"}
+                        ? `${insuranceLabel(booking.insurance)}${booking.insurance.unlisted ? " (verify — not on our list)" : ""}`
+                        : "Self Pay"}
                     </p>
                   </td>
                   <td className="px-4 py-3">

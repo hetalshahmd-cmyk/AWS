@@ -45,6 +45,15 @@ export type Provider = {
   cta: string;
   /** Hidden providers keep their bookings but leave the site and booking. */
   active: boolean;
+  /**
+   * Off: shown on the site, but with no Book button and no online booking
+   * (staff can still book them from the admin panel).
+   */
+  bookable: boolean;
+  /** Replaces "Accepting new patients" on the card and profile; null = that. */
+  badge: string | null;
+  /** A line under the description on the card and profile, e.g. who new patients see first. */
+  newPatientNote: string | null;
   order: number;
 };
 
@@ -116,8 +125,15 @@ export const DEFAULT_PROVIDERS: Provider[] = seedProviders.map((provider, order)
   focus: [...(provider.focus as readonly string[])],
   cta: provider.cta,
   active: true,
+  ...seedRouting(provider),
   order,
 }));
+
+/** The booking settings a seed provider starts with (bookable, no badge or note, unless set). */
+export function seedRouting(provider: object): Pick<Provider, "bookable" | "badge" | "newPatientNote"> {
+  const seed = provider as Partial<Pick<Provider, "bookable" | "badge" | "newPatientNote">>;
+  return { bookable: seed.bookable ?? true, badge: seed.badge ?? null, newPatientNote: seed.newPatientNote ?? null };
+}
 
 /**
  * Kept on globalThis, not in a module variable: Next bundles each page and API
@@ -149,4 +165,9 @@ export function getAllProviders(): Provider[] {
 /** Providers patients can see and book — hidden ones left out. */
 export function getProviders(): Provider[] {
   return getAllProviders().filter((provider) => provider.active);
+}
+
+/** Shown providers with online booking on — the ones the booking form offers. */
+export function getBookableProviders(): Provider[] {
+  return getProviders().filter((provider) => provider.bookable);
 }

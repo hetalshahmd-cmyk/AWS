@@ -41,6 +41,22 @@ export type HeroContent = {
 
 export type OfficeId = (typeof locations)[number]["id"];
 
+/** One day's opening hours, "8:00 am" style; both null = closed. */
+export type OpeningDay = { weekday: number; open: string | null; close: string | null };
+
+/**
+ * The practice's office hours (Dr. Shah, Nov 2026): Monday to Friday,
+ * 8:00 am to 5:00 pm. These are the hours the doors are open — appointment
+ * times come from the weekly schedule and can end earlier.
+ */
+export function defaultOpeningHours(): OpeningDay[] {
+  return [1, 2, 3, 4, 5, 6, 0].map((weekday) =>
+    weekday >= 1 && weekday <= 5
+      ? { weekday, open: "8:00 am", close: "5:00 pm" }
+      : { weekday, open: null, close: null },
+  );
+}
+
 export type Office = {
   /** Fixed: slots and bookings store it. */
   id: OfficeId;
@@ -52,6 +68,8 @@ export type Office = {
   /** Null = the practice's main number. */
   phone: string | null;
   image: ImageRef;
+  /** Office hours shown on the site (footer, Contact, office cards, booking form). Monday first. */
+  hours: OpeningDay[];
 };
 
 export type SiteContent = { hero: HeroContent; offices: Office[] };
@@ -90,6 +108,7 @@ export const DEFAULT_SITE_CONTENT: SiteContent = {
     maps: office.maps,
     phone: null,
     image: { ...OFFICE_IMAGES[office.id], url: null, alt: "" },
+    hours: defaultOpeningHours(),
   })),
 };
 

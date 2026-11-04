@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Reads the account back from Mongo, so an admin deleted from the database
   // loses access on their next page load even with a valid cookie.
   const admin = await getCurrentAdmin().catch(() => null);
-  if (!admin) redirect("/admin/login");
+  if (!admin) redirect("/login");
   // Doctors sign in on the same page but only get their own panel.
   if (admin.role === "provider") redirect("/admin/doctor");
 

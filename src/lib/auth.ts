@@ -146,7 +146,7 @@ export async function requireStaff(): Promise<Admin> {
  */
 export async function requireAdminPage(): Promise<Admin> {
   const admin = await getCurrentAdmin().catch(() => null);
-  if (!admin) redirect("/admin/login");
+  if (!admin) redirect("/login");
   if (admin.role !== "admin") redirect("/admin/doctor");
   return admin;
 }

@@ -2,8 +2,8 @@ import { dayRange, type Lang } from "@/lib/i18n";
 import { summarizeWeek, type OfficeDay } from "@/lib/scheduling";
 
 /**
- * One office's opening times this week, from the week plan: neighbouring days
- * with the same first and last appointment are joined ("Mon – Thu").
+ * One office's opening hours (Admin → Modify site): neighbouring days with
+ * the same hours are joined ("Mon – Fri").
  */
 export function weekLines(days: OfficeDay[], lang: Lang = "en") {
   return summarizeWeek(days).map((group) => ({

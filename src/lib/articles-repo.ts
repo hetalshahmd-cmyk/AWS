@@ -512,7 +512,8 @@ const SERVICE_PHRASES: Record<string, string[]> = {
 
 const PAGE_TARGETS: LinkTarget[] = [
   { href: "/book", title: "Book an appointment", phrases: ["book an appointment", "schedule an appointment", "make an appointment", "book online", "schedule a visit"] },
-  { href: "/pricing", title: "Pricing", phrases: ["self-pay", "visit prices", "pricing", "cost of a visit"] },
+  { href: "/self-pay", title: "Self Pay", phrases: ["self-pay", "self pay", "visit prices", "pricing", "cost of a visit"] },
+  { href: "/insurance", title: "Insurance", phrases: ["insurance plans", "your insurance", "insurance coverage"] },
   { href: "/contact", title: "Our offices", phrases: ["our offices", "our office", "Maryvale", "Arrowhead", "Glendale office", "Phoenix office"] },
 ];
 

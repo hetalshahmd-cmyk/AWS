@@ -79,7 +79,7 @@ export async function run({ call, check, db, mailDir, admin, doctor, root }) {
         reason: "OB-GYN Consultation",
         patientType: "existing",
         insurance: null,
-        patient: { email: "someone.else@example.com", firstName: "Priya", lastName: "Yazzie", dob: "1990-01-01", sex: "Female" },
+        patient: { email: "someone.else@example.com", firstName: "Priya", lastName: "Yazzie", dob: "1990-01-01", sex: "Female", phone: "(623) 555-0142" },
         lang: "en",
       });
       statuses.push(r.status);
@@ -115,7 +115,7 @@ export async function run({ call, check, db, mailDir, admin, doctor, root }) {
   check("health refuses SESSION_SECRET", (await call(null, "GET", "/api/admin/health", undefined, { "x-health-key": process.env.SESSION_SECRET })).status === 401);
 
   console.log("\n# Admin pages");
-  check("signed out: /admin/users → login", ((await call(null, "GET", "/admin/users")).headers.get("location") ?? "").includes("/admin/login"));
+  check("signed out: /admin/users → login", ((await call(null, "GET", "/admin/users")).headers.get("location") ?? "").endsWith("/login"));
   const D = jar();
   await call(D, "POST", "/api/admin/session", doctor);
   check("doctor: /admin/users → own panel", ((await call(D, "GET", "/admin/users")).headers.get("location") ?? "").includes("/admin/doctor"));
@@ -173,7 +173,7 @@ export async function run({ call, check, db, mailDir, admin, doctor, root }) {
       reason: "OB-GYN Consultation",
       patientType: "existing",
       insurance: null,
-      patient: { email: "valeria.reyes@example.com", firstName: "Valeria", lastName: "Reyes", dob: "1990-01-01", sex: "Female" },
+      patient: { email: "valeria.reyes@example.com", firstName: "Valeria", lastName: "Reyes", dob: "1990-01-01", sex: "Female", phone: "(623) 555-0142" },
       lang: "en",
       reschedule: moving.manageToken,
     };

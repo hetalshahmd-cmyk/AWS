@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ReviewArticlePage({ params }: { params: Promise<{ id: string }> }) {
   const staff = await getCurrentAdmin().catch(() => null);
-  if (!staff || staff.role !== "provider" || !staff.providerId) redirect("/admin/login");
+  if (!staff || staff.role !== "provider" || !staff.providerId) redirect("/login");
   const article = await getArticle((await params).id);
   // A doctor sees only the articles sent to them, or that they approved.
   if (!article || (article.reviewerId !== staff.providerId && article.approval?.providerId !== staff.providerId)) {

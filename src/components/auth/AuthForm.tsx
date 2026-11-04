@@ -43,6 +43,12 @@ export default function AuthForm({ next }: { next: string }) {
         return;
       }
 
+      // Staff (admin or provider) signed in here go to their own panel.
+      if (data.redirect) {
+        router.replace(data.redirect);
+        router.refresh();
+        return;
+      }
       setUser(data.user);
       router.push(next);
       router.refresh();

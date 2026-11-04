@@ -1,9 +1,11 @@
 import { crossSiteBlocked } from "@/lib/csrf";
+import { cleanPhone } from "@/lib/phone";
+import { BOOKING_SEX, cleanInsurance } from "@/lib/practice";
 import { NextResponse } from "next/server";
 import { getUserSession } from "@/lib/auth";
 import { manageToken } from "@/lib/booking-links";
 import { isLang } from "@/lib/i18n";
-import { getProviders } from "@/lib/providers";
+import { getBookableProviders } from "@/lib/providers";
 import { patientView } from "@/lib/models";
 import { sendServerEvent } from "@/lib/meta";
 import { isEmailVerified } from "@/lib/otp";
@@ -49,6 +51,7 @@ export async function POST(request: Request) {
   const lastName = str(patient.lastName, 60);
   const dob = str(patient.dob, 20);
   const sex = str(patient.sex, 20);
+  const phone = cleanPhone(patient.phone, patient.phoneCountry);
 
   if (!/^[a-f\d]{24}$/i.test(slotId)) {
     return NextResponse.json({ error: "Pick an appointment time" }, { status: 400 });
@@ -56,12 +59,17 @@ export async function POST(request: Request) {
   if (!email.includes("@") || !firstName || !lastName || !dob || !sex) {
     return NextResponse.json({ error: "Please fill in every required field" }, { status: 400 });
   }
+  if (sex !== BOOKING_SEX) {
+    return NextResponse.json({ error: "Please fill in every required field" }, { status: 400 });
+  }
+  if (!phone) {
+    return NextResponse.json({ error: "Enter a mobile phone number we can text or call — check the country and the number", field: "phone" }, { status: 400 });
+  }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
     return NextResponse.json({ error: "Enter your date of birth" }, { status: 400 });
   }
 
-  const insurance = body.insurance as { carrier?: unknown; plan?: unknown } | null;
   const reason = str(body.reason, 120) || "OB-GYN Consultation";
 
   const blocked = await limited([
@@ -114,8 +122,9 @@ export async function POST(request: Request) {
   // The provider on this slot must see patients for this visit reason.
   const allowed = await providersForReason(reason);
   const slotProvider = await getSlotProvider(slotId);
-  // A provider hidden from the site (Admin → Doctors) can't be booked online.
-  if (slotProvider && !getProviders().some((provider) => provider.id === slotProvider)) {
+  // A provider hidden from the site, or with online booking off (Admin →
+  // Doctors), can't be booked online. Staff can still book them.
+  if (slotProvider && !getBookableProviders().some((provider) => provider.id === slotProvider)) {
     return NextResponse.json(
       { error: "That provider isn't taking online bookings right now. Pick another time." },
       { status: 409 },
@@ -139,16 +148,14 @@ export async function POST(request: Request) {
       via: session ? "account" : "guest",
       reason,
       patientType: body.patientType === "new" ? "new" : "existing",
-      insurance:
-        insurance && typeof insurance === "object"
-          ? { carrier: str(insurance.carrier, 80), plan: str(insurance.plan, 80) }
-          : null,
+      insurance: cleanInsurance(body.insurance),
       patient: {
         email: normalisedEmail,
         firstName,
         lastName,
         dob,
         sex,
+        phone,
         genderIdentity: str(patient.genderIdentity, 60) || undefined,
         pronouns: str(patient.pronouns, 40) || undefined,
       },

@@ -26,14 +26,15 @@ export const site = {
     rest: "Walk in today · Phoenix & Glendale",
   },
   description:
-    "Compassionate, confidential care from Dr. Hetal C. Shah, MD. Walk-ins welcome, AHCCCS & WIC accepted — and you can book online in under a minute.",
+    "Compassionate, confidential care from Dr. Hetal C. Shah, MD. Walk-ins welcome, AHCCCS accepted — and you can book online in under a minute.",
   footerBlurb: "Compassionate pregnancy and women's health care in Phoenix & Glendale.",
 };
 
 export const navLinks = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
-  { href: "/pricing", label: "Pricing" },
+  { href: "/insurance", label: "Insurance" },
+  { href: "/self-pay", label: "Self Pay" },
   { href: "/about", label: "Providers" },
   { href: "/contact", label: "Contact" },
 ];
@@ -42,7 +43,7 @@ export const heroChips = [
   "Same-day appointments",
   "Walk-ins welcome",
   "Most insurances accepted",
-  "AHCCCS & WIC accepted",
+  "AHCCCS accepted",
   "Se habla español",
   "100% confidential",
 ];
@@ -55,9 +56,9 @@ export const quickLinks = [
     body: "Testing, ultrasound & prenatal care",
   },
   {
-    href: "/pricing",
+    href: "/self-pay",
     icon: "tag" as const,
-    title: "Pricing",
+    title: "Self Pay",
     body: "$100 first visit · $75 follow-up",
   },
   {
@@ -208,6 +209,17 @@ export const prices = [
  * The starting list only: providers now live in MongoDB and are edited from
  * Admin → Doctors (see lib/providers.ts). This seeds an empty collection.
  */
+/**
+ * Dr. Erickson and Dr. Cook see patients after a first visit with Kylee or
+ * Julie, so the website doesn't offer to book them directly (Dr. Shah,
+ * Nov 2026). Admin → Doctors can change all three settings later.
+ */
+const SEEN_AFTER_FIRST_VISIT = (doctor: string) => ({
+  bookable: false,
+  badge: "New patients: see Kylee or Julie first",
+  newPatientNote: `New patients are first seen by Kylee Tate, PA-C or Julie Denton, FNP. After your first visit, they will schedule you with ${doctor} if needed.`,
+});
+
 export const seedProviders = [
   {
     id: "shah",
@@ -337,6 +349,7 @@ export const seedProviders = [
     ],
     cta: "Book with Dr. Erickson",
     avatar: "from-[#4E7B73] to-[#2F4F48]",
+    ...SEEN_AFTER_FIRST_VISIT("Dr. Erickson or Dr. Cook"),
   },
   {
     // Zocdoc profile + NPI registry (practice address: 6370 W Union Hills Dr).
@@ -363,6 +376,7 @@ export const seedProviders = [
     focus: [],
     cta: "Book with Dr. Cook",
     avatar: "from-[#8A6A9E] to-[#5C3E70]",
+    ...SEEN_AFTER_FIRST_VISIT("Dr. Erickson or Dr. Cook"),
   },
 ] as const;
 
@@ -397,6 +411,10 @@ export const locations = [
 ] as const;
 
 
+/**
+ * Not shown on the site for now (Nov 2026): several of these plans wait for
+ * billing to confirm them. The Insurance page lists plans once confirmed.
+ */
 export const insurancePills = [
   "AHCCCS",
   "Medicare",

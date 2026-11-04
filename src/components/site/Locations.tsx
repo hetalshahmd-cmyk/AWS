@@ -9,7 +9,7 @@ import { weekLines } from "./WeekHours";
 import { BookButton, Button } from "./ui";
 
 /**
- * The two offices as cards: picture, address, this week's hours (from the
+ * The two offices as cards: picture, address, office hours (from the
  * week plan), call, directions, book. Names, addresses, phone and picture are
  * edited in Admin → Site content.
  */
@@ -79,12 +79,12 @@ export default async function Locations() {
 
               {unknown || !hours ? (
                 <p className="mt-6 rounded-2xl bg-ivory px-4 py-3 text-plum-soft">
-                  Call us for this week&apos;s times — {phone.label}.
+                  Call us for our hours — {phone.label}.
                 </p>
               ) : (
                 <>
                   <p className="mt-6 text-[0.78rem] font-semibold uppercase tracking-[0.14em] text-stone">
-                    This week
+                    Office hours
                   </p>
                   <dl className="mt-2 grid grid-cols-2 gap-3">
                     {weekLines(hours[location.id]).map((row) => (

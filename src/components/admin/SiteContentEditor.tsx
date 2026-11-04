@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { photos, type PhotoKey } from "@/lib/photos";
 import { site } from "@/lib/site";
-import type { HeroSlide, ImageRef, Office, SiteContent } from "@/lib/site-content";
+import type { HeroSlide, ImageRef, Office, OpeningDay, SiteContent } from "@/lib/site-content";
 import { resolveImage } from "@/lib/site-images";
 import { BTN_DANGER, BTN_PRIMARY, BTN_QUIET, CARD, FIELD, LABEL, Notice } from "./ui";
 
@@ -16,6 +16,24 @@ const LIBRARY = Object.keys(photos) as PhotoKey[];
 function parsePoint(point: string): [number, number] {
   const match = point.match(/^(\d{1,3})% (\d{1,3})%$/);
   return match ? [Number(match[1]), Number(match[2])] : [50, 50];
+}
+
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** "5:00 pm" -> "17:00" for a time field. */
+function to24(time: string | null): string {
+  const match = time?.match(/^(\d{1,2}):(\d{2}) (am|pm)$/);
+  if (!match) return "";
+  const hours = (Number(match[1]) % 12) + (match[3] === "pm" ? 12 : 0);
+  return `${String(hours).padStart(2, "0")}:${match[2]}`;
+}
+
+/** "17:00" -> "5:00 pm", the way the site writes times. */
+function from24(value: string): string | null {
+  const match = value.match(/^(\d{2}):(\d{2})$/);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  return `${hours % 12 || 12}:${match[2]} ${hours >= 12 ? "pm" : "am"}`;
 }
 
 /** Google Maps search link for an address. */
@@ -301,6 +319,7 @@ export default function SiteContentEditor({ initial }: { initial: SiteContent })
                     </a>
                   </div>
                 </div>
+                <OfficeHoursField hours={office.hours} onChange={(hours) => setOffice(office.id, { hours })} />
                 <div>
                   <p className={LABEL}>Card picture</p>
                   <ImageField image={office.image} onChange={(image) => setOffice(office.id, { image })} onError={setError} />
@@ -338,6 +357,67 @@ export default function SiteContentEditor({ initial }: { initial: SiteContent })
 }
 
 /** A library photo or an upload, cropped at a focus point. */
+/**
+ * When the office is open, day by day. Shown on the footer, Contact page,
+ * office cards and booking form. Appointment times are set in Appointment
+ * slots; the last appointment can be before closing time.
+ */
+function OfficeHoursField({ hours, onChange }: { hours: OpeningDay[]; onChange: (hours: OpeningDay[]) => void }) {
+  const setDay = (weekday: number, patch: Partial<OpeningDay>) =>
+    onChange(hours.map((day) => (day.weekday === weekday ? { ...day, ...patch } : day)));
+  return (
+    <fieldset>
+      <legend className={LABEL}>Office hours</legend>
+      <p className="-mt-1 mb-2 text-[12px] text-plum-soft">
+        When the doors are open. Appointment times are set separately, in Appointment slots.
+      </p>
+      <div className="space-y-1.5">
+        {hours.map((day) => {
+          const closed = !day.open && !day.close;
+          const name = DAY_NAMES[day.weekday];
+          return (
+            <div key={day.weekday} className="grid grid-cols-[92px_auto_1fr] items-center gap-2 text-[14px]">
+              <span className="font-medium">{name}</span>
+              <label className="flex items-center gap-1.5 text-plum-soft">
+                <input
+                  type="checkbox"
+                  checked={closed}
+                  onChange={(event) =>
+                    setDay(day.weekday, event.target.checked ? { open: null, close: null } : { open: "8:00 am", close: "5:00 pm" })
+                  }
+                  className="h-4 w-4 accent-wine"
+                />
+                Closed
+              </label>
+              {closed ? (
+                <span />
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <input
+                    type="time"
+                    aria-label={`${name} opens`}
+                    value={to24(day.open)}
+                    onChange={(event) => setDay(day.weekday, { open: from24(event.target.value) })}
+                    className={`${FIELD} py-1.5`}
+                  />
+                  –
+                  <input
+                    type="time"
+                    aria-label={`${name} closes`}
+                    value={to24(day.close)}
+                    onChange={(event) => setDay(day.weekday, { close: from24(event.target.value) })}
+                    className={`${FIELD} py-1.5`}
+                  />
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
 function Picture({ image, position, sizes }: { image: ImageRef; position: string; sizes: string }) {
   const { src, alt } = resolveImage(image);
   return (

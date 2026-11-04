@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import HeroCarousel, { type HeroSlide } from "@/components/site/HeroCarousel";
 import Ico from "@/components/site/Ico";
-import InsuranceSection from "@/components/site/InsuranceSection";
+import InsuranceLink from "@/components/site/InsuranceLink";
 import ServicesBento from "@/components/site/ServicesBento";
 import StepsSection from "@/components/site/StepsSection";
 import Locations from "@/components/site/Locations";
@@ -247,7 +247,7 @@ export default async function HomePage() {
 
       {/* ------------------------------------------------------- insurance -- */}
       <Section>
-        <InsuranceSection center photo="receptionTablet" />
+        <InsuranceLink />
       </Section>
 
       {/* ------------------------------------------------------- locations -- */}

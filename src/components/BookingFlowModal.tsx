@@ -1,12 +1,15 @@
 "use client";
 
+import type { CountryCode } from "libphonenumber-js/min";
+import { cleanPhone, DEFAULT_PHONE_COUNTRY } from "@/lib/phone";
+import PhoneInput from "./PhoneInput";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import ProviderAvatar from "@/components/site/ProviderAvatar";
 import type { DayAvailability, DaySlot } from "@/lib/availability";
 import { dateBadge, longDate, reasonLabel, shortDate } from "@/lib/i18n";
-import { ALL_VISIT_REASONS, practice, reasonFor } from "@/lib/practice";
+import { ALL_VISIT_REASONS, BOOKING_SEX, insuranceLabel, practice, reasonFor } from "@/lib/practice";
 import { mondayOf, officeById, providerById, shortProviderName } from "@/lib/scheduling";
 import { getOffices } from "@/lib/site-content";
 import { newEventId, track } from "./analytics/track";
@@ -253,7 +256,7 @@ export default function BookingFlowModal({
               picked={picked}
               reason={reason}
               patientType={patientType}
-              insurance={insurance ? `${insurance.carrier} · ${insurance.plan}` : tr.payingForMyself}
+              insurance={insurance ? insuranceLabel(insurance) : tr.payingForMyself}
               moved={moved}
               result={result}
               onClose={onClose}
@@ -677,7 +680,7 @@ function VisitStep({
             <ShieldSmall className="h-5 w-5 shrink-0" />
             <span className={`truncate ${insuranceChosen ? "text-ink" : "text-ink-soft"}`}>
               {insurance
-                ? `${insurance.carrier} · ${insurance.plan}`
+                ? insuranceLabel(insurance)
                 : insuranceChosen
                   ? tr.selfPay
                   : tr.insurancePlaceholder}
@@ -775,7 +778,10 @@ function AboutYouStep({
       firstName,
       lastName: restOfName.join(" "),
       dob: "",
-      sex: "",
+      phone: "",
+      phoneCountry: DEFAULT_PHONE_COUNTRY as CountryCode,
+      // A women's practice: Female is the only option, so it starts chosen.
+      sex: BOOKING_SEX,
       genderIdentity: "",
       pronouns: "",
     };
@@ -863,6 +869,11 @@ function AboutYouStep({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    // Same check as the server, before a guest is sent an email code.
+    if (!cleanPhone(form.phone, form.phoneCountry)) {
+      setError(tr.phoneInvalid);
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -957,13 +968,34 @@ function AboutYouStep({
               />
             </label>
 
+            <div>
+              <label htmlFor="booking-phone" className="mb-1.5 block text-[15px] font-semibold">
+                {tr.mobilePhone}
+              </label>
+              <PhoneInput
+                id="booking-phone"
+                required
+                lang={lang}
+                country={form.phoneCountry}
+                number={form.phone}
+                onChange={({ country, number }) => setForm({ ...form, phoneCountry: country, phone: number })}
+                countryLabel={tr.phoneCountry}
+                describedBy="booking-phone-help"
+                title={tr.mobilePhoneFormat}
+                inputClassName={FIELD}
+              />
+              <span id="booking-phone-help" className="mt-1.5 block text-[14px] text-ink-soft">
+                {tr.mobilePhoneHelp}
+              </span>
+            </div>
+
             <fieldset>
               <legend className="mb-1.5 flex items-center gap-1.5 text-[15px] font-semibold">
                 {tr.sex}
                 <InfoIcon className="h-4 w-4 text-muted" />
               </legend>
               <div className="space-y-2">
-                {(["Male", "Female"] as const).map((option) => (
+                {([BOOKING_SEX] as const).map((option) => (
                   <label key={option} className="flex items-center gap-2.5 text-[16px]">
                     <input
                       required
@@ -974,7 +1006,7 @@ function AboutYouStep({
                       onChange={(event) => setForm({ ...form, sex: event.target.value })}
                       className="h-4 w-4 accent-wine"
                     />
-                    {option === "Male" ? tr.male : tr.female}
+                    {tr.female}
                   </label>
                 ))}
               </div>

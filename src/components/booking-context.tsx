@@ -1,5 +1,6 @@
 "use client";
 
+import type { InsuranceChoice } from "@/lib/practice";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { defaultVisitReason } from "@/lib/practice";
 import type { DayAvailability, DaySlot, PatientType } from "@/lib/availability";
@@ -7,7 +8,7 @@ import type { OfficeId, ProviderId } from "@/lib/scheduling";
 import InsuranceModal from "./InsuranceModal";
 import BookingFlowModal from "./BookingFlowModal";
 
-export type Insurance = { carrier: string; plan: string } | null;
+export type Insurance = InsuranceChoice | null;
 
 /** "any" means the patient has not narrowed it down. */
 export type OfficeChoice = OfficeId | "any";

@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ReviewsPage() {
   const staff = await getCurrentAdmin().catch(() => null);
-  if (!staff || staff.role !== "provider" || !isProviderId(staff.providerId)) redirect("/admin/login");
+  if (!staff || staff.role !== "provider" || !isProviderId(staff.providerId)) redirect("/login");
   const [queue, reviewed] = await Promise.all([listReviewQueue(staff.providerId), listReviewedBy(staff.providerId)]);
 
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import { insuranceLabel } from "@/lib/practice";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { addDays, formatShort } from "@/lib/availability";
@@ -70,7 +71,7 @@ export default function DoctorPanel({
     const list = groups[tab];
     if (!term) return list;
     return list.filter((booking) =>
-      `${booking.patient.firstName} ${booking.patient.lastName} ${booking.patient.email} ${booking.reason} ${booking.date}`
+      `${booking.patient.firstName} ${booking.patient.lastName} ${booking.patient.email} ${booking.patient.phone ?? ""} ${booking.reason} ${booking.date}`
         .toLowerCase()
         .includes(term),
     );
@@ -228,6 +229,9 @@ export default function DoctorPanel({
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold">
                           {booking.patient.firstName} {booking.patient.lastName}
+                          {booking.patient.phone && (
+                            <span className="ml-2 text-[13px] font-normal text-plum-soft">{booking.patient.phone}</span>
+                          )}
                           {booking.patientType === "new" && (
                             <span className="ml-2 rounded bg-wine-soft px-1.5 py-0.5 text-[11px] font-bold uppercase text-wine-deep">
                               New
@@ -237,8 +241,8 @@ export default function DoctorPanel({
                         <p className="text-[13px] text-plum-soft">
                           {booking.reason} · {officeById(booking.officeId)?.name ?? "—"} ·{" "}
                           {booking.insurance
-                            ? `${booking.insurance.carrier} · ${booking.insurance.plan}`
-                            : "Self-pay"}
+                            ? `${insuranceLabel(booking.insurance)}${booking.insurance.unlisted ? " (verify — not on our list)" : ""}`
+                            : "Self Pay"}
                           {booking.lang === "es" && " · Español"}
                         </p>
                       </div>

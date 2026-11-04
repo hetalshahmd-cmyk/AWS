@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { cleanPhone } from "@/lib/phone";
+import { cleanInsurance } from "@/lib/practice";
 import { readJson, staffRoute } from "@/lib/api-helpers";
 import { sendConfirmation } from "@/lib/appointment-emails";
 import { isLang } from "@/lib/i18n";
@@ -45,6 +47,7 @@ export const POST = staffRoute(async (request, staff) => {
   const lastName = str(patient.lastName, 60);
   const dob = str(patient.dob, 20);
   const sex = str(patient.sex, 20);
+  const phone = cleanPhone(patient.phone, patient.phoneCountry);
   const reason = str(body.reason, 120) || "OB-GYN Consultation";
 
   if (!/^[a-f\d]{24}$/i.test(slotId)) {
@@ -55,6 +58,9 @@ export const POST = staffRoute(async (request, staff) => {
       { error: "Fill in the patient's name, email, date of birth and sex" },
       { status: 400 },
     );
+  }
+  if (!phone) {
+    return NextResponse.json({ error: "Enter the patient's mobile phone number — check the country and the number" }, { status: 400 });
   }
 
   const slot = await getSlotInfo(slotId);
@@ -73,7 +79,6 @@ export const POST = staffRoute(async (request, staff) => {
     );
   }
 
-  const insurance = body.insurance as { carrier?: unknown; plan?: unknown } | null;
   try {
     const booking = await createBooking({
       slotId,
@@ -82,11 +87,8 @@ export const POST = staffRoute(async (request, staff) => {
       via: "staff",
       reason,
       patientType: body.patientType === "new" ? "new" : "existing",
-      insurance:
-        insurance && typeof insurance === "object" && str(insurance.carrier, 80)
-          ? { carrier: str(insurance.carrier, 80), plan: str(insurance.plan, 80) }
-          : null,
-      patient: { email, firstName, lastName, dob, sex },
+      insurance: cleanInsurance(body.insurance),
+      patient: { email, firstName, lastName, dob, sex, phone },
     });
     const emailed = await sendConfirmation(booking);
     if (emailed) await markConfirmationSent(booking.id).catch(() => undefined);

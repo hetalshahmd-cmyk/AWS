@@ -29,6 +29,10 @@ const privatePaths = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // The Pricing page is now Self Pay; old links and bookmarks still arrive.
+  async redirects() {
+    return [{ source: "/pricing", destination: "/self-pay", permanent: true }];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

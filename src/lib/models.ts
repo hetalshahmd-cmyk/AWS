@@ -1,5 +1,6 @@
 import type { ObjectId } from "mongodb";
 import type { IcoName } from "@/components/site/Ico";
+import type { InsuranceChoice } from "./practice";
 
 /**
  * "admin" runs the whole back office. "provider" is a doctor: signs in on the
@@ -158,6 +159,8 @@ export type Patient = {
   lastName: string;
   dob: string;
   sex: string;
+  /** Mobile number for confirming the visit, "(623) 846-7597". Missing on older bookings. */
+  phone?: string;
   genderIdentity?: string;
   pronouns?: string;
 };
@@ -174,7 +177,7 @@ export type BookingDoc = {
   time: string;
   reason: string;
   patientType: "new" | "existing";
-  insurance: { carrier: string; plan: string } | null;
+  insurance: InsuranceChoice | null;
   patient: Patient;
   status: BookingStatus;
   /** Language for patient emails. Absent on older bookings (English). */

@@ -94,7 +94,7 @@ export async function run({ call, check, base, admin, doctor }) {
   const L2 = jar();
   await call(L2, "POST", "/api/admin/session", { email: "lopez@arizonawomen.com", password: "Lopez-pass-2026" });
   await call(A, "PUT", "/api/admin/doctors/lopez/login", { email: "lopez@arizonawomen.com", password: "Lopez-new-pass-2026" });
-  check("a new password signs her out everywhere", ((await call(L2, "GET", "/admin/doctor")).headers.get("location") ?? "").includes("/admin/login"));
+  check("a new password signs her out everywhere", ((await call(L2, "GET", "/admin/doctor")).headers.get("location") ?? "").endsWith("/login"));
   await call(A, "DELETE", "/api/admin/doctors/lopez/login");
   check("removing her sign-in stops it", (await call(jar(), "POST", "/api/admin/session", { email: "lopez@arizonawomen.com", password: "Lopez-new-pass-2026" })).status === 401);
 

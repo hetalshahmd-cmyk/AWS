@@ -214,9 +214,10 @@ try {
   await send("Network.clearBrowserCookies");
 
   // Staff
-  await go("/admin/login", 2500);
-  await shot("30-staff-sign-in", "Staff sign-in");
-  await signIn("/api/admin/session", ADMIN);
+  // Staff sign in on the same /login page as patients.
+  await go("/login", 2500);
+  await shot("30-staff-sign-in", "One sign-in page for patients, providers and admins");
+  await signIn("/api/auth/session", ADMIN);
   const admin = [
     ["31-admin-dashboard", "/admin", "Admin dashboard"],
     ["32-admin-slots", "/admin/slots", "Appointment slots — the fixed weekly schedule; change one week, go back to the fixed schedule, or change the fixed schedule"],
@@ -238,8 +239,8 @@ try {
   await viewport(1366, 900);
   await send("Network.clearBrowserCookies");
 
-  await go("/admin/login", 2000);
-  await signIn("/api/admin/session", DOCTOR);
+  await go("/login", 2000);
+  await signIn("/api/auth/session", DOCTOR);
   await go("/admin/doctor", 4000);
   await shot("40-provider-panel", "A provider's own panel — only their appointments", { full: true });
 

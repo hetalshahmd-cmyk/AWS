@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { carriers, plansFor, type Carrier } from "@/lib/practice";
+import { carriers, plansFor, practice, type Carrier } from "@/lib/practice";
 import { useBooking } from "./booking-context";
 import { useLang } from "./lang-context";
 import { CheckIcon, ChevronLeft, CloseIcon, SearchIcon } from "./icons";
@@ -11,6 +11,13 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
   const { tr } = useLang();
   const [query, setQuery] = useState("");
   const [carrier, setCarrier] = useState<Carrier | null>(null);
+  // "My insurance isn't listed": the patient types the name (and maybe a member ID).
+  const [typing, setTyping] = useState(false);
+  const [typed, setTyped] = useState({ name: "", memberId: "" });
+  const typeItIn = () => {
+    setTyped({ name: query.trim() || (insurance?.unlisted ? insurance.carrier : ""), memberId: insurance?.memberId ?? "" });
+    setTyping(true);
+  };
 
   useEffect(() => {
     const onEsc = (event: KeyboardEvent) => {
@@ -50,14 +57,17 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={carrier ? tr.insSelectPlanFor(carrier.name) : tr.insSelect}
+        aria-label={carrier ? tr.insSelectPlanFor(carrier.name) : typing ? tr.insNotListed : tr.insSelect}
         className="flex max-h-[92vh] w-full max-w-xl flex-col rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl"
       >
         <div className="flex items-start justify-between gap-4 px-6 pb-2 pt-6">
-          {carrier ? (
+          {carrier || typing ? (
             <button
               type="button"
-              onClick={() => setCarrier(null)}
+              onClick={() => {
+                setCarrier(null);
+                setTyping(false);
+              }}
               className="focus-ring flex items-center gap-1.5 text-[15px] font-semibold"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -76,7 +86,52 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {carrier ? (
+        {typing ? (
+          <form
+            className="min-h-0 flex-1 overflow-y-auto px-6 pb-6"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const name = typed.name.trim();
+              if (name.length < 2) return;
+              // The server decides whether it is on our list; this is only for the screen.
+              setInsurance({ carrier: name, plan: "", ...(typed.memberId.trim() ? { memberId: typed.memberId.trim() } : {}), unlisted: true });
+              onClose();
+            }}
+          >
+            <h3 className="py-2 text-[19px] font-bold tracking-tight">{tr.insNotListed}</h3>
+            <label className="mt-2 block">
+              <span className="mb-1.5 block text-[15px] font-semibold">{tr.insTypeName}</span>
+              <input
+                autoFocus
+                required
+                minLength={2}
+                maxLength={80}
+                value={typed.name}
+                onChange={(event) => setTyped({ ...typed, name: event.target.value })}
+                className="focus-ring w-full rounded-lg border border-line-strong bg-white px-4 py-3 text-[16px]"
+              />
+            </label>
+            <label className="mt-4 block">
+              <span className="mb-1.5 block text-[15px] font-semibold">{tr.insMemberId}</span>
+              <input
+                maxLength={30}
+                autoComplete="off"
+                value={typed.memberId}
+                onChange={(event) => setTyped({ ...typed, memberId: event.target.value })}
+                className="focus-ring w-full rounded-lg border border-line-strong bg-white px-4 py-3 text-[16px]"
+              />
+              <span className="mt-1 block text-[13px] text-muted">{tr.insMemberIdHint}</span>
+            </label>
+            <p className="mt-4 rounded-lg bg-cream px-4 py-3 text-[15px]">{tr.insCheckNote}</p>
+            <button
+              type="submit"
+              disabled={typed.name.trim().length < 2}
+              className="focus-ring mt-5 w-full rounded-full bg-wine px-6 py-3 text-[16px] font-medium text-white transition hover:bg-wine-deep disabled:opacity-50"
+            >
+              {tr.insContinue}
+            </button>
+          </form>
+        ) : carrier ? (
           <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
             <div className="flex items-center gap-3 py-2">
               <CarrierLogo carrier={carrier} />
@@ -125,9 +180,16 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
 
             <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4">
               {matches.length === 0 && (
-                <p className="py-8 text-center text-[15px] text-muted">
-                  {tr.insNoMatch(query)}
-                </p>
+                <div className="py-8 text-center">
+                  <p className="text-[15px] text-ink-soft">{tr.insNoMatch(practice.phone)}</p>
+                  <button
+                    type="button"
+                    onClick={typeItIn}
+                    className="focus-ring mt-4 rounded-full border border-line-strong px-5 py-2.5 text-[15px] font-semibold transition hover:bg-cream"
+                  >
+                    {tr.insTypeIt}
+                  </button>
+                </div>
               )}
 
               {popular.length > 0 && (
@@ -174,6 +236,17 @@ export default function InsuranceModal({ onClose }: { onClose: () => void }) {
                   </ul>
                 </section>
               ))}
+
+              {matches.length > 0 && (
+                <button
+                  type="button"
+                  onClick={typeItIn}
+                  className="focus-ring mt-3 flex w-full items-center justify-between gap-3 rounded-lg border border-line-strong px-4 py-3 text-left text-[16px] font-semibold hover:bg-cream"
+                >
+                  {tr.insNotListed}
+                  {insurance?.unlisted && <CheckIcon className="h-5 w-5 shrink-0 text-teal" />}
+                </button>
+              )}
             </div>
 
             <div className="border-t border-line px-6 py-4 text-center">

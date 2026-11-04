@@ -40,7 +40,7 @@ const ES = {
     { title: "Idiomas", body: "En la oficina se habla inglés, español, guyaratí e hindi" },
   ],
   directions: "Cómo llegar",
-  hours: "Horario de esta semana",
+  hours: "Horario de la oficina",
   gettingHere: "Cómo llegar a la oficina",
   closed: "Cerrado",
   arrive: [
@@ -187,7 +187,7 @@ function Location({ hours }: { hours: OfficeHours | null }) {
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
         <div>
-          <h3 className="text-[17px] font-semibold">{es ? ES.hours : "This week's hours"}</h3>
+          <h3 className="text-[17px] font-semibold">{es ? ES.hours : "Office hours"}</h3>
           {hoursEmpty(hours) || !hours ? (
             <p className="mt-3 text-[15px] text-ink-soft">
               {es

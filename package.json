@@ -17,10 +17,12 @@
     "typecheck": "tsc --noEmit",
     "backup": "node scripts/backup.mjs",
     "screenshots": "node scripts/screenshots.mjs",
-    "restore": "node scripts/restore.mjs"
+    "restore": "node scripts/restore.mjs",
+    "flags": "node scripts/copy-flags.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",
+    "libphonenumber-js": "^1.13.15",
     "mongodb": "^7.5.0",
     "next": "^16.3.8",
     "nodemailer": "^10.0.15",
@@ -33,6 +35,7 @@
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "country-flag-icons": "^1.6.20",
     "eslint": "^9",
     "eslint-config-next": "^16.3.8",
     "tailwindcss": "^4",

@@ -1,5 +1,6 @@
 "use client";
 
+import { insuranceLabel } from "@/lib/practice";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import BookLink from "@/components/analytics/BookLink";
@@ -324,9 +325,7 @@ export function NextCard({ booking, ...controls }: { booking: MyBooking } & Canc
         <Detail label={tr.visit}>
           <p className="font-medium leading-snug text-plum">{reasonLabel(booking.reason, lang)}</p>
           <p className="text-[13px] text-plum-soft">
-            {booking.insurance
-              ? `${booking.insurance.carrier} · ${booking.insurance.plan}`
-              : tr.selfPay}
+            {booking.insurance ? insuranceLabel(booking.insurance) : tr.selfPay}
           </p>
           <p className="text-[13px] text-plum-soft">
             {booking.patientType === "new" ? tr.newPatient : tr.existingPatient}

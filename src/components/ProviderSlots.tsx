@@ -12,7 +12,7 @@ import {
 } from "@/lib/scheduling";
 import { site } from "@/lib/site";
 import { getOffices } from "@/lib/site-content";
-import { getProviders, type Provider } from "@/lib/providers";
+import { getBookableProviders, type Provider } from "@/lib/providers";
 import { weekLines } from "./site/WeekHours";
 import PhoneLink from "./analytics/PhoneLink";
 import ProviderAvatar from "./site/ProviderAvatar";
@@ -42,7 +42,7 @@ export default function ProviderSlots({ hours }: { hours: OfficeHours | null }) 
   const { todayIso, officeId, setOfficeId, providerId, version } = useBooking();
   // A "Book again with …" link puts that provider first; later clicks don't reorder.
   const [order] = useState(() =>
-    [...getProviders()].sort((a, b) => Number(b.id === providerId) - Number(a.id === providerId)),
+    [...getBookableProviders()].sort((a, b) => Number(b.id === providerId) - Number(a.id === providerId)),
   );
   const { tr } = useLang();
   const [days, setDays] = useState<DayAvailability[] | null>(null);

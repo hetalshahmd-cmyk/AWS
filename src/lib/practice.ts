@@ -181,9 +181,10 @@ export const carriers: Carrier[] = [
   { name: "1199SEIU National Benefit Fund", short: "1199", color: "#1b4f9c" },
   { name: "6 Degrees Health", short: "6DH", color: "#0f766e" },
   { name: "Aetna", short: "aetna", color: "#7d3f98", popular: true },
-  { name: "AHCCCS", short: "AHC", color: "#1f6f4a" },
+  { name: "AHCCCS", short: "AHC", color: "#1f6f4a", popular: true },
   { name: "Ambetter from Arizona Complete Health", short: "AMB", color: "#5b2d90" },
-  { name: "Anthem Blue Cross Blue Shield", short: "Anthem", color: "#005eb8", popular: true },
+  // Not on the practice's roster as a quick pick (Nov 2026): our Blue Cross plan is BCBS of Arizona.
+  { name: "Anthem Blue Cross Blue Shield", short: "Anthem", color: "#005eb8" },
   { name: "Banner University Family Care", short: "BUFC", color: "#00427e" },
   { name: "Beech Street", short: "BS", color: "#4a5568" },
   { name: "Blue Cross Blue Shield of Arizona", short: "BCBS", color: "#0067b1", popular: true },
@@ -202,7 +203,8 @@ export const carriers: Carrier[] = [
   { name: "Health Net", short: "HN", color: "#0067b1" },
   { name: "Humana", short: "Humana", color: "#5c8727" },
   { name: "Magellan Health", short: "MH", color: "#00549f" },
-  { name: "Medicare", short: "Medicare", color: "#0b5cab", popular: true },
+  // Not a quick-pick box any more (Nov 2026); still in "All carriers" while the practice decides.
+  { name: "Medicare", short: "Medicare", color: "#0b5cab" },
   { name: "Mercy Care", short: "Mercy", color: "#12100c", popular: true },
   { name: "Molina Healthcare", short: "Molina", color: "#00a1a1" },
   { name: "MultiPlan", short: "MP", color: "#003b71" },
@@ -246,7 +248,46 @@ const CARRIER_PLANS: Record<string, string[]> = {
 
 const DEFAULT_PLANS = ["PPO", "HMO", "POS", "EPO"];
 
+/**
+ * The insurance a patient gave when booking. `unlisted` marks a carrier they
+ * typed in because it isn't in our list — the front desk checks coverage
+ * before the visit. `memberId` is optional and only ever shown to staff.
+ */
+export type InsuranceChoice = { carrier: string; plan: string; memberId?: string; unlisted?: boolean };
+
+/** "Cigna · PPO", or just the name for a typed-in carrier without a plan. */
+export function insuranceLabel(insurance: Pick<InsuranceChoice, "carrier" | "plan">): string {
+  return insurance.plan ? `${insurance.carrier} · ${insurance.plan}` : insurance.carrier;
+}
+
+const plainText = (value: unknown, max: number) =>
+  typeof value === "string"
+    ? value
+        .replace(/[\u0000-\u001f\u007f]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, max)
+    : "";
+
+/**
+ * Insurance from a booking request. Whether the carrier is in our list is
+ * decided here, on the server — never taken from the browser.
+ */
+export function cleanInsurance(value: unknown): InsuranceChoice | null {
+  if (!value || typeof value !== "object") return null;
+  const input = value as Record<string, unknown>;
+  const carrier = plainText(input.carrier, 80);
+  if (!carrier) return null;
+  const plan = plainText(input.plan, 80);
+  const memberId = plainText(input.memberId, 30);
+  const unlisted = !carriers.some((item) => item.name === carrier);
+  return { carrier, plan, ...(memberId ? { memberId } : {}), ...(unlisted ? { unlisted: true } : {}) };
+}
+
 export function plansFor(carrier: string): string[] {
   return CARRIER_PLANS[carrier] ?? DEFAULT_PLANS;
 }
 
+
+/** A women's practice: the booking form offers Female only (Nov 2026). */
+export const BOOKING_SEX = "Female";

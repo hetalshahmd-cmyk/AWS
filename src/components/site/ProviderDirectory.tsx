@@ -60,7 +60,12 @@ export default function ProviderDirectory() {
       }
       const [, id, office] = hash.match(/^book-([a-z]+)(?:-([a-z]+))?$/) ?? [];
       const provider = getProviders().find((p) => p.id === id);
-      if (provider) {
+      if (provider && !provider.bookable) {
+        // No online booking for this provider: show their profile, which says who to see first.
+        history.replaceState(null, "", `${window.location.pathname}${window.location.search}#provider-${provider.id}`);
+        setOpen(provider);
+        if (!dialog.current?.open) dialog.current?.showModal();
+      } else if (provider) {
         // The Book link that brought them here already counted the Lead.
         book(provider, office, false);
         history.replaceState(null, "", window.location.pathname + window.location.search);
@@ -133,9 +138,13 @@ function ProviderCard({
           aria-hidden="true"
           className="absolute inset-0 bg-[radial-gradient(circle_at_85%_10%,rgba(255,255,255,.28),transparent_55%)]"
         />
-        <span className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[0.74rem] font-medium text-sage-ink">
-          <span className="h-1.5 w-1.5 rounded-full bg-sage" aria-hidden="true" />
-          Accepting new patients
+        <span
+          className={`absolute right-4 top-4 inline-flex max-w-[calc(100%-2rem)] items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-[0.74rem] font-medium ${
+            provider.badge ? "text-plum" : "text-sage-ink"
+          }`}
+        >
+          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${provider.badge ? "bg-wine" : "bg-sage"}`} aria-hidden="true" />
+          {provider.badge ?? "Accepting new patients"}
         </span>
         <div className="absolute -bottom-12 left-6">
           <ProviderAvatar provider={provider} size="md" />
@@ -156,6 +165,7 @@ function ProviderCard({
         <p className="mt-4 line-clamp-3 text-[0.95rem] leading-relaxed text-plum-soft">
           {provider.about[0]}
         </p>
+        {provider.newPatientNote && <NewPatientNote text={provider.newPatientNote} className="mt-3" />}
 
         {focus.length > 0 && (
           <ul className="mt-4 flex flex-wrap gap-1.5">
@@ -175,14 +185,16 @@ function ProviderCard({
           </ul>
         )}
 
-        <div className="mt-auto grid grid-cols-2 gap-2 pt-6">
+        <div className={`mt-auto grid gap-2 pt-6 ${provider.bookable ? "grid-cols-2" : "grid-cols-1"}`}>
           <button type="button" onClick={onOpen} className={LINE} aria-haspopup="dialog">
             View profile
           </button>
-          <button type="button" onClick={onBook} className={BOOK} aria-haspopup="dialog">
-            <Ico name="cal" className="h-4 w-4" />
-            Book
-          </button>
+          {provider.bookable && (
+            <button type="button" onClick={onBook} className={BOOK} aria-haspopup="dialog">
+              <Ico name="cal" className="h-4 w-4" />
+              Book
+            </button>
+          )}
         </div>
       </div>
     </article>
@@ -247,9 +259,9 @@ function ProviderProfile({
                   </span>
                 </a>
               ) : null}
-              <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white/15 px-3 py-1 text-[0.82rem]">
-                <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden="true" />
-                Accepting new patients
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[0.82rem]">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-white" aria-hidden="true" />
+                {provider.badge ?? "Accepting new patients"}
               </span>
             </div>
           </div>
@@ -264,6 +276,7 @@ function ProviderProfile({
             <p key={paragraph}>{paragraph}</p>
           ))}
         </div>
+        {provider.newPatientNote && <NewPatientNote text={provider.newPatientNote} className="mt-4" />}
 
         <dl className="mt-7 grid gap-x-8 gap-y-6 border-t border-mist pt-6 sm:grid-cols-2">
           <Fact icon="star" label="Education & training">
@@ -330,12 +343,24 @@ function ProviderProfile({
           )}
           <EcwButton provider={provider} />
         </div>
-        <button type="button" onClick={onBook} className={`${BOOK} max-sm:w-full`}>
-          <Ico name="cal" className="h-4 w-4" />
-          {provider.cta}
-        </button>
+        {provider.bookable && (
+          <button type="button" onClick={onBook} className={`${BOOK} max-sm:w-full`}>
+            <Ico name="cal" className="h-4 w-4" />
+            {provider.cta}
+          </button>
+        )}
       </div>
     </div>
+  );
+}
+
+/** Who new patients see first, under the description. */
+function NewPatientNote({ text, className = "" }: { text: string; className?: string }) {
+  return (
+    <p className={`flex gap-2 rounded-xl bg-wine-soft/60 px-3 py-2.5 text-[0.88rem] leading-snug text-plum ${className}`}>
+      <Ico name="users" className="mt-0.5 h-4 w-4 shrink-0 text-wine" />
+      <span>{text}</span>
+    </p>
   );
 }
 

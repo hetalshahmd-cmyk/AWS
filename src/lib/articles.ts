@@ -428,7 +428,7 @@ export function articleLinks(body: string): { href: string; text: string }[] {
 export const pathOf = (href: string) => href.split("#")[0] || "/";
 
 /** Public pages an article may link to, besides /blog/<slug>. */
-export const SITE_PATHS = ["/", "/services", "/pricing", "/about", "/contact", "/book", "/blog", "/privacy"];
+export const SITE_PATHS = ["/", "/services", "/insurance", "/self-pay", "/pricing", "/about", "/contact", "/book", "/blog", "/privacy"];
 
 /**
  * Problems with an article's links, for the editor and the save check.

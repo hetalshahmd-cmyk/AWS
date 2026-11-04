@@ -44,7 +44,7 @@ export async function run({ call, check, admin }) {
         reason: "OB-GYN Consultation",
         patientType: "existing",
         insurance: null,
-        patient: { email: "x@example.com", firstName: "Test", lastName: "Patient", dob: "1992-02-02", sex: "Female" },
+        patient: { email: "x@example.com", firstName: "Test", lastName: "Patient", dob: "1992-02-02", sex: "Female", phone: "(623) 555-0142" },
         lang: "en",
       })
     : { status: 0 };

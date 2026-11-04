@@ -16,7 +16,7 @@ export default function SignOutButton() {
       onClick={async () => {
         setBusy(true);
         await fetch("/api/admin/session", { method: "DELETE" });
-        router.replace("/admin/login");
+        router.replace("/login");
         router.refresh();
       }}
     >

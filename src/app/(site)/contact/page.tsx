@@ -11,7 +11,7 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   title: `Contact & Locations — ${site.name}`,
   description:
-    "Two Phoenix-area offices: 4700 N 51st Ave Ste 5, Phoenix and 6370 W Union Hills Dr, Glendale. See this week's hours for each office.",
+    "Two Phoenix-area offices: 4700 N 51st Ave Ste 5, Phoenix and 6370 W Union Hills Dr, Glendale. Open Monday to Friday — see the hours for each office.",
   alternates: { canonical: "/contact" },
 };
 
@@ -20,7 +20,7 @@ const TILE =
 const LABEL = "block text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-stone";
 const VALUE = "mt-1 block font-display text-[1.3rem] leading-tight text-plum";
 
-/** "Mon – Fri" and earliest – latest appointment across both offices this week. */
+/** "Mon – Fri" and the earliest opening – latest closing across both offices. */
 function overallHours(hours: Awaited<ReturnType<typeof getOfficeHours>>) {
   if (!hours || hoursEmpty(hours)) return null;
   const open = [1, 2, 3, 4, 5, 6, 0].filter((weekday) =>
@@ -92,7 +92,7 @@ export default async function ContactPage() {
             <IconTile name="clock" />
             <span>
               <span className={LABEL}>
-                {weekdays ? `This week · ${weekdays.days}` : "Office hours"}
+                {weekdays ? `Office hours · ${weekdays.days}` : "Office hours"}
               </span>
               <span className={VALUE}>{weekdays ? weekdays.hours : "Call for times"}</span>
             </span>

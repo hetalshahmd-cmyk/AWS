@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DoctorPage() {
   const staff = await getCurrentAdmin().catch(() => null);
-  if (!staff || !isProviderId(staff.providerId)) redirect("/admin/login");
+  if (!staff || !isProviderId(staff.providerId)) redirect("/login");
   const provider = providerById(staff.providerId);
   const bookings = await listProviderBookings(staff.providerId);
 

@@ -19,6 +19,9 @@ type Draft = {
   cta: string;
   avatar: string;
   active: boolean;
+  bookable: boolean;
+  badge: string;
+  newPatientNote: string;
   about: string;
   education: string;
   certifications: string;
@@ -38,6 +41,9 @@ function toDraft(provider: Provider | null): Draft {
     cta: provider?.cta ?? "",
     avatar: provider?.avatar ?? AVATAR_COLORS[0],
     active: provider?.active ?? true,
+    bookable: provider?.bookable ?? true,
+    badge: provider?.badge ?? "",
+    newPatientNote: provider?.newPatientNote ?? "",
     // Paragraphs are separated by a blank line.
     about: provider?.about.join("\n\n") ?? "",
     education: provider?.education.join("\n") ?? "",
@@ -118,6 +124,9 @@ export default function DoctorEditor({
       npi: "",
       cta: "",
       active: true,
+      bookable: true,
+      badge: null,
+      newPatientNote: null,
     }),
     name: draft.name,
     cred: draft.cred,
@@ -278,6 +287,54 @@ export default function DoctorEditor({
                 <span className="font-semibold">Show on the website</span>
                 <span className="block text-[13px] text-plum-soft">Off hides the profile and booking; past bookings stay.</span>
               </span>
+            </label>
+          </div>
+        </section>
+
+        {/* ----------------------------------------------------- booking -- */}
+        <section className={CARD}>
+          <h2 className="text-[1.1rem] font-semibold">Booking on the website</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="flex items-start gap-3 rounded-lg border border-line-strong px-3 py-2.5 md:col-span-2">
+              <input
+                type="checkbox"
+                checked={draft.bookable}
+                onChange={(event) => {
+                  setDraft({ ...draft, bookable: event.target.checked });
+                  setDirty(true);
+                  setOk("");
+                }}
+                className="mt-1 h-4 w-4 accent-wine"
+              />
+              <span className="text-[15px]">
+                <span className="font-semibold">Show the Book button</span>
+                <span className="block text-[13px] text-plum-soft">
+                  Off: the profile stays on the website with &quot;View profile&quot;, but the Book buttons disappear
+                  and patients can&apos;t pick this provider in online booking. Staff can still book them from the
+                  admin panel.
+                </span>
+              </span>
+            </label>
+            <label className="block">
+              <span className={LABEL}>Badge on the card (empty = &quot;Accepting new patients&quot;)</span>
+              <input
+                value={draft.badge}
+                onChange={set("badge")}
+                maxLength={60}
+                placeholder="Accepting new patients"
+                className={FIELD}
+              />
+            </label>
+            <label className="block md:col-span-2">
+              <span className={LABEL}>Note for new patients (under the description on the card and profile; empty = none)</span>
+              <textarea
+                rows={3}
+                value={draft.newPatientNote}
+                onChange={set("newPatientNote")}
+                maxLength={400}
+                placeholder="e.g. New patients are first seen by …"
+                className={FIELD}
+              />
             </label>
           </div>
         </section>
@@ -452,7 +509,7 @@ function SignIn({ providerId, initialEmail }: { providerId: string; initialEmail
           <h2 className="text-[1.1rem] font-semibold">Sign-in for the doctor&apos;s panel</h2>
           <p className="mt-1 text-[14px] text-plum-soft">
             {current
-              ? `Signs in at /admin/login as ${current} and sees only their own appointments.`
+              ? `Signs in at /login as ${current} and sees only their own appointments.`
               : "No sign-in yet. Create one so the doctor can see their own appointments."}
           </p>
         </div>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAvailability, loadProviders, providersForReason } from "@/lib/repo";
-import { getProviders } from "@/lib/providers";
+import { getBookableProviders } from "@/lib/providers";
 import { arizonaTodayIso, isOfficeId, isProviderId } from "@/lib/scheduling";
 
 export const dynamic = "force-dynamic";
@@ -20,8 +20,9 @@ export async function GET(request: Request) {
   try {
     // Provider ids are checked against the current list (Admin → Doctors).
     await loadProviders();
-    // Only providers shown on the site can be booked; a reason narrows it further.
-    const visible = getProviders().map((provider) => provider.id);
+    // Only providers shown on the site with online booking on can be booked;
+    // a reason narrows it further.
+    const visible = getBookableProviders().map((provider) => provider.id);
     const forReason = await providersForReason(reason);
     const days_ = await getAvailability(start, days, {
       officeId: isOfficeId(officeId) ? officeId : null,

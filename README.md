@@ -144,12 +144,12 @@ Demo patients sign in with their email and the demo password printed by
 | `/contact` | Phoenix + Glendale offices, hours |
 | `/book` | Providers with their open times. Picking a time asks the visit details (that provider's visit reasons, insurance, new or existing), then who the patient is. Guests confirm their email with a 6-digit code; `?reschedule=<link token>` moves an existing appointment |
 | `/register` | Name + email → emailed 6-digit code → password |
-| `/login` | Email + password |
+| `/login` | Email + password — the one sign-in for patients, providers and admins |
 | `/my-bookings` | The signed-in patient's panel: overview, appointments (upcoming / past / cancelled), profile and password |
 | `/appointment/[token]` | One appointment from the link in the patient's emails — no sign-in. Calendar, directions, reschedule, cancel |
 | `/appointment/[token]/check-in` | Pre-visit check-in: contact, emergency contact, insurance IDs and card photos, photo ID, health history |
 
-**Admin** (`/admin`, session-guarded — signed out visitors are redirected to `/admin/login`)
+**Admin** (`/admin`, session-guarded — signed out visitors are redirected to `/login`)
 
 | Route | What you can do |
 | --- | --- |
@@ -247,6 +247,14 @@ made from the name when a provider is added (`shah`, `denton`, `tate`, …). Bot
 are stored on every slot and booking — they never change. Slots and bookings from before this change have no
 provider or office; they still work and show as "—" in the admin.
 
+**Mobile phone.** Every booking (online and "Book for a patient") needs a
+mobile number. The country picker starts on the United States; the number is
+checked against that country's rules with `libphonenumber-js` and saved as
+`(623) 555-0199` for +1 numbers or `+91 98765 43210` for the rest
+(`src/lib/phone.ts`). The flags are local SVGs in `public/flags`, copied from
+`country-flag-icons` by `npm run flags` — no third-party requests. The form
+offers Female only.
+
 ## Emails, reminders, check-in and Spanish
 
 - **Confirmation** is emailed as soon as a booking is made, with the
@@ -309,6 +317,14 @@ Accounts are documents in `admins`:
 ```js
 { email, name, passwordHash, role: "admin" | "provider", providerId, sessionVersion, createdAt, lastLoginAt }
 ```
+
+**One sign-in page.** Everyone signs in at `/login` (`POST /api/auth/session`).
+An email that belongs to a staff account is checked against that account (5
+wrong tries per address in 15 minutes, 20 per IP) and gets the staff cookie;
+admins land on `/admin`, providers on `/admin/doctor`. Any other email signs
+in as a patient. The staff and patient sessions are separate cookies
+(`aws_admin`, `aws_user`), so one never grants the other. `/admin/login`
+redirects to `/login`; `POST /api/admin/session` still works.
 
 Admins manage them from **Settings** (their own and other admins) and
 **Doctors** (each provider's sign-in). Staff passwords are at least 12
@@ -469,7 +485,7 @@ src/
     (site)/                        # marketing pages — header + footer
     (account)/                     # login, register, my-bookings — header only
     book/page.tsx                  # booking page — no site chrome
-    admin/login/                   # sign-in
+    admin/login/                   # old staff sign-in address → /login
     admin/(dash)/                  # guarded shell + dashboard/bookings/slots/pricing
     api/                           # availability, bookings, admin CRUD
   components/

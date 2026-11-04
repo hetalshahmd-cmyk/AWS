@@ -16,8 +16,8 @@ export default async function AdminPricingPage() {
       <h1 className="font-display text-[1.9rem] font-semibold">Pricing</h1>
       <p className="mt-1 text-plum-soft">
         These cards are what patients see on{" "}
-        <Link href="/pricing" className="font-semibold text-wine link-underline">
-          /pricing
+        <Link href="/self-pay" className="font-semibold text-wine link-underline">
+          /self-pay
         </Link>
         . Changes go live immediately.
       </p>

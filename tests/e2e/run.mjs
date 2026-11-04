@@ -21,9 +21,14 @@ import { client, reporter, sleep } from "./lib.mjs";
 import * as articleAi from "./article-ai.mjs";
 import * as articles from "./articles.mjs";
 import { startFakeAnthropic } from "./fake-anthropic.mjs";
+import * as bookingButtons from "./booking-buttons.mjs";
 import * as browser from "./browser.mjs";
 import * as doctors from "./doctors.mjs";
+import * as insurance from "./insurance.mjs";
+import * as login from "./login.mjs";
+import * as phone from "./phone.mjs";
 import * as schedule from "./schedule.mjs";
+import * as selfPay from "./self-pay.mjs";
 import * as security from "./security.mjs";
 import * as siteContent from "./site.mjs";
 
@@ -126,7 +131,7 @@ try {
   mongo = await MongoClient.connect(uri);
   const ctx = { call: client(BASE), check, base: BASE, db: mongo.db(DB), mailDir, admin: ADMIN, doctor: DOCTOR, root, fakeAi };
   // Order matters: Doctors & Settings changes the admin's password, so it runs last.
-  for (const suite of [schedule, security, browser, siteContent, articles, articleAi, doctors]) await suite.run(ctx);
+  for (const suite of [schedule, security, browser, siteContent, bookingButtons, insurance, phone, selfPay, articles, articleAi, login, doctors]) await suite.run(ctx);
 } catch (error) {
   check(`run finished without crashing`, false, error instanceof Error ? error.stack ?? error.message : String(error));
 } finally {

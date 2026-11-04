@@ -2,13 +2,14 @@
  * Unit tests for the small helpers the booking, security and scheduling code
  * rely on. No database or server needed:  npm test
  */
+import { cleanPhone, phoneCountries, phoneHref } from "@/lib/phone";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { safeNext } from "@/components/auth/safe-next";
 import { bookingIdFromToken, manageLinkExpired, manageToken } from "@/lib/booking-links";
 import { crossSiteBlocked } from "@/lib/csrf";
 import { cleanSourceUrl } from "@/lib/meta";
-import { ALL_VISIT_REASONS, reasonFor, zocdocReasons } from "@/lib/practice";
+import { ALL_VISIT_REASONS, carriers, cleanInsurance, insuranceLabel, reasonFor, zocdocReasons } from "@/lib/practice";
 import { ctaFor, DEFAULT_PROVIDERS, initialsOf, zocdocAgeDays } from "@/lib/providers";
 import {
   cleanSchedule,
@@ -128,5 +129,56 @@ describe("providers", () => {
   it("counts days since the Zocdoc check", () => {
     assert.equal(zocdocAgeDays({ zocdocCheckedAt: "2026-10-01" }, "2026-10-06"), 5);
     assert.equal(zocdocAgeDays({ zocdocCheckedAt: null }, "2026-10-06"), null);
+  });
+});
+
+describe("insurance picker", () => {
+  const popular = carriers.filter((carrier) => carrier.popular).map((carrier) => carrier.name);
+  it("offers AHCCCS as a quick pick, and no longer Medicare or Anthem", () => {
+    assert.ok(popular.includes("AHCCCS"));
+    assert.ok(!popular.includes("Medicare"));
+    assert.ok(!popular.includes("Anthem Blue Cross Blue Shield"));
+    assert.ok(popular.includes("Blue Cross Blue Shield of Arizona"));
+  });
+  it("marks a typed-in carrier for a coverage check, whatever the browser says", () => {
+    assert.deepEqual(cleanInsurance({ carrier: "  Banner   Plus ", plan: "", memberId: "X1", unlisted: false }), {
+      carrier: "Banner Plus",
+      plan: "",
+      memberId: "X1",
+      unlisted: true,
+    });
+    assert.deepEqual(cleanInsurance({ carrier: "Cigna", plan: "PPO", unlisted: true }), { carrier: "Cigna", plan: "PPO" });
+    assert.equal(cleanInsurance({ carrier: "  " }), null);
+    assert.equal(cleanInsurance("Cigna"), null);
+  });
+  it("labels a carrier without a plan by name alone", () => {
+    assert.equal(insuranceLabel({ carrier: "Banner Plus", plan: "" }), "Banner Plus");
+    assert.equal(insuranceLabel({ carrier: "Cigna", plan: "PPO" }), "Cigna · PPO");
+  });
+  it("keeps Medicare in the full list", () => assert.ok(carriers.some((carrier) => carrier.name === "Medicare")));
+});
+
+describe("mobile phone on bookings", () => {
+  it("tidies any common way of writing a US number", () => {
+    for (const raw of ["6235550199", "(623) 555-0199", "623.555.0199", "1-623-555-0199", "+1 623 555 0199"]) {
+      assert.equal(cleanPhone(raw), "(623) 555-0199", raw);
+    }
+  });
+  for (const bad of ["", "555-0199", "22345678901", "(023) 555-0199", "623-555-01999", "call me", "623555019x", null, 6235550199]) {
+    it(`refuses ${JSON.stringify(bad)}`, () => assert.equal(cleanPhone(bad), null));
+  }
+  it("takes numbers from other countries, picked from the list or typed with +code", () => {
+    assert.equal(cleanPhone("98765 43210", "IN"), "+91 98765 43210");
+    assert.equal(cleanPhone("+91 98765 43210", "US"), "+91 98765 43210");
+    assert.equal(cleanPhone("55 1234 5678", "MX"), "+52 55 1234 5678");
+    assert.equal(cleanPhone("98765 43210", "US"), null, "an Indian number isn't a US one");
+    assert.equal(cleanPhone("6235550199", "XX"), "(623) 555-0199", "an unknown country falls back to the US");
+  });
+  it("makes call links for both kinds", () => {
+    assert.equal(phoneHref("(623) 555-0199"), "tel:+16235550199");
+    assert.equal(phoneHref("+91 98765 43210"), "tel:+919876543210");
+  });
+  it("lists the United States first, then Mexico, India and Canada", () => {
+    assert.deepEqual(phoneCountries("en").slice(0, 4).map((country) => country.code), ["US", "MX", "IN", "CA"]);
   });
 });
