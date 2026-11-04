@@ -28,7 +28,14 @@ export async function run({ call, check }) {
     "the Insurance tab opens with the practice's own wording, and no unconfirmed plans",
     insurance.status === 200 &&
       insurancePage.includes("We accept most major insurance plans and AHCCCS, and help you use your benefits. If you are pregnant, we can refer you to WIC.") &&
-      PENDING_PLANS.every((plan) => !insurancePage.includes(plan)),
+      // Multiplan and Prime Health were confirmed by the practice in Nov 2026; the rest still wait.
+      PENDING_PLANS.filter((plan) => !["Multiplan", "Prime Health"].includes(plan)).every((plan) => !insurancePage.includes(plan)),
+  );
+  check(
+    "…and lists every network the practice confirmed, with its plans",
+    ["Velocity", "Provider Select", "Prospect", "Prime Health", "MultiPlan Claritev", "IHP", "Gold Kidney Health Plan", "Galaxy Health", "Fusion", "CorVel", "MCCP"].every((name) => insurancePage.includes(`>${name}</h3>`)) &&
+      insurancePage.includes("Medicare Advantage Plans") &&
+      insurancePage.includes("Search your insurance"),
   );
 
   const sitemap = (await call(null, "GET", "/sitemap.xml")).text;

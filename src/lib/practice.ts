@@ -177,7 +177,46 @@ export type Carrier = {
   popular?: boolean;
 };
 
-export const carriers: Carrier[] = [
+/**
+ * Networks the practice told us it accepts that were missing from the
+ * booking list (Nov 2026), with the plans under each. Booking offers them as
+ * carriers and the Insurance page lists them.
+ */
+export const acceptedNetworks: { name: string; short: string; plans: string[] }[] = [
+  { name: "CorVel", short: "CorVel", plans: ["Auto", "PPO", "Workers Comp"] },
+  { name: "Fusion", short: "Fusion", plans: ["PPO"] },
+  { name: "Galaxy Health", short: "Galaxy", plans: ["PPO", "Savings Card - Discount", "Workers Comp"] },
+  { name: "Gold Kidney Health Plan", short: "GKHP", plans: ["Discount"] },
+  {
+    name: "IHP",
+    short: "IHP",
+    plans: ["Claritev Auto", "Claritev Discount Card", "Claritev PPO", "Claritev Workers Comp"],
+  },
+  { name: "MCCP", short: "MCCP", plans: ["Auto", "PPO", "Workers Comp"] },
+  {
+    name: "MultiPlan Claritev",
+    short: "MP",
+    plans: ["Auto", "Medicare Advantage Plans", "PPO", "ValuePoint - Discount", "Workers Comp"],
+  },
+  {
+    name: "Prime Health",
+    short: "Prime",
+    plans: [
+      "PPO",
+      "Auto",
+      "Workers Comp",
+      "IME - EPO",
+      "Personal Injury Network - AP",
+      "Telemedicine Program for Workers Comp",
+      "WTC - Discount",
+    ],
+  },
+  { name: "Prospect", short: "Prospect", plans: ["SCAN Desert Health Plan", "Letter of Intent"] },
+  { name: "Provider Select", short: "PS", plans: ["PPO"] },
+  { name: "Velocity", short: "Velocity", plans: ["Auto", "PPO", "Workers Comp"] },
+];
+
+const listed: Carrier[] = [
   { name: "1199SEIU National Benefit Fund", short: "1199", color: "#1b4f9c" },
   { name: "6 Degrees Health", short: "6DH", color: "#0f766e" },
   { name: "Aetna", short: "aetna", color: "#7d3f98", popular: true },
@@ -207,7 +246,6 @@ export const carriers: Carrier[] = [
   { name: "Medicare", short: "Medicare", color: "#0b5cab" },
   { name: "Mercy Care", short: "Mercy", color: "#12100c", popular: true },
   { name: "Molina Healthcare", short: "Molina", color: "#00a1a1" },
-  { name: "MultiPlan", short: "MP", color: "#003b71" },
   { name: "Nippon Life Benefits", short: "NLB", color: "#a51c30" },
   { name: "Oscar Health", short: "Oscar", color: "#0f4c81" },
   { name: "Oxford Health Plans", short: "OHP", color: "#1b4f9c" },
@@ -223,6 +261,11 @@ export const carriers: Carrier[] = [
   { name: "WellCare", short: "WC", color: "#00579c" },
   { name: "Wellpoint", short: "WP", color: "#005eb8" },
 ];
+
+export const carriers: Carrier[] = [
+  ...listed,
+  ...acceptedNetworks.map(({ name, short }) => ({ name, short, color: "#5c1e2d" })),
+].sort((a, b) => a.name.localeCompare(b.name, "en"));
 
 const CARRIER_PLANS: Record<string, string[]> = {
   Aetna: [
@@ -244,6 +287,7 @@ const CARRIER_PLANS: Record<string, string[]> = {
   "Anthem Blue Cross Blue Shield": ["Blue Access PPO", "Pathway HMO", "National PPO (BlueCard)"],
   Humana: ["ChoiceCare Network PPO", "National POS", "Gold Plus HMO"],
   AHCCCS: ["Health Choice Arizona", "Mercy Care", "Banner University Family Care"],
+  ...Object.fromEntries(acceptedNetworks.map(({ name, plans }) => [name, plans])),
 };
 
 const DEFAULT_PLANS = ["PPO", "HMO", "POS", "EPO"];

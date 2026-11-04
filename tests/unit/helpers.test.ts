@@ -9,7 +9,7 @@ import { safeNext } from "@/components/auth/safe-next";
 import { bookingIdFromToken, manageLinkExpired, manageToken } from "@/lib/booking-links";
 import { crossSiteBlocked } from "@/lib/csrf";
 import { cleanSourceUrl } from "@/lib/meta";
-import { ALL_VISIT_REASONS, carriers, cleanInsurance, insuranceLabel, reasonFor, zocdocReasons } from "@/lib/practice";
+import { ALL_VISIT_REASONS, acceptedNetworks, carriers, cleanInsurance, insuranceLabel, plansFor, reasonFor, zocdocReasons } from "@/lib/practice";
 import { ctaFor, DEFAULT_PROVIDERS, initialsOf, zocdocAgeDays } from "@/lib/providers";
 import {
   cleanSchedule,
@@ -156,6 +156,15 @@ describe("insurance picker", () => {
     assert.equal(insuranceLabel({ carrier: "Cigna", plan: "PPO" }), "Cigna · PPO");
   });
   it("keeps Medicare in the full list", () => assert.ok(carriers.some((carrier) => carrier.name === "Medicare")));
+  it("offers every network the practice added, with its own plans", () => {
+    for (const name of ["Velocity", "Provider Select", "Prospect", "Prime Health", "MultiPlan Claritev", "IHP", "Gold Kidney Health Plan", "Galaxy Health", "Fusion", "CorVel", "MCCP"]) {
+      assert.ok(carriers.some((carrier) => carrier.name === name), name);
+      assert.equal(cleanInsurance({ carrier: name, plan: "PPO" })?.unlisted, undefined, name);
+    }
+    assert.deepEqual(plansFor("Velocity"), ["Auto", "PPO", "Workers Comp"]);
+    assert.equal(acceptedNetworks.length, 11);
+    assert.equal(new Set(carriers.map((carrier) => carrier.name)).size, carriers.length, "no carrier twice");
+  });
 });
 
 describe("mobile phone on bookings", () => {
