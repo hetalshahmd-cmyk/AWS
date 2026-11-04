@@ -132,6 +132,10 @@ export default async function PrivacyPage() {
             {offices.map((office) => office.address.join(", ")).join(" and ")}. You can reach us on{" "}
             <a href={site.phoneHref} className="font-semibold text-wine link-underline">
               {site.phone}
+            </a>
+            , by fax on {site.fax}, by email at{" "}
+            <a href={site.emailHref} className="font-semibold text-wine link-underline">
+              {site.email}
             </a>{" "}
             or through our{" "}
             <Link href="/contact" className="font-semibold text-wine link-underline">
@@ -308,6 +312,10 @@ export default async function PrivacyPage() {
             Questions about this policy, or about the information we hold on you? Call{" "}
             <a href={site.phoneHref} className="font-semibold text-wine link-underline">
               {site.phone}
+            </a>
+            , fax {site.fax}, email{" "}
+            <a href={site.emailHref} className="font-semibold text-wine link-underline">
+              {site.email}
             </a>{" "}
             or visit either office. We would rather answer than have you wonder.
           </P>

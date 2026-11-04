@@ -18,6 +18,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { MongoClient } from "mongodb";
 import { client, reporter, sleep } from "./lib.mjs";
+import * as articleAi from "./article-ai.mjs";
+import * as articles from "./articles.mjs";
+import { startFakeAnthropic } from "./fake-anthropic.mjs";
 import * as browser from "./browser.mjs";
 import * as doctors from "./doctors.mjs";
 import * as schedule from "./schedule.mjs";
@@ -28,6 +31,9 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const DB = "arizona_e2e";
 const PORT = Number(process.env.E2E_PORT ?? 3111);
 const SMTP_PORT = Number(process.env.E2E_SMTP_PORT ?? 2526);
+const AI_PORT = Number(process.env.E2E_AI_PORT ?? 2527);
+// Test-only: the scheduler's secret for /api/cron/* in this run.
+process.env.E2E_CRON_SECRET = "e2e-cron-secret-not-real-0123456789";
 const BASE = `http://localhost:${PORT}`;
 const ADMIN = { email: "admin@e2e.test", password: "E2e-admin-pass-1" };
 const DOCTOR = { email: "denton@arizonawomen.com", password: "E2e-doctor-pass-1" };
@@ -77,6 +83,7 @@ const dropDb = async () => {
 const mailDir = fs.mkdtempSync(path.join(os.tmpdir(), "awsp-mail-"));
 let server;
 let sink;
+let fakeAi;
 let mongo;
 const { check, results } = reporter();
 
@@ -88,12 +95,15 @@ try {
   run(["scripts/seed.mjs", "--email", ADMIN.email, "--password", ADMIN.password, "--name", "E2E Admin", "--doctors", "--doctor-password", DOCTOR.password], seedEnv);
   run(["scripts/seed-demo.mjs"], seedEnv);
 
+  // The AI writer talks to a local stand-in, never the real Claude API.
+  fakeAi = startFakeAnthropic(AI_PORT);
   sink = spawn(process.execPath, [path.join(root, "tests/e2e/smtp-sink.mjs"), mailDir, String(SMTP_PORT)], { stdio: "ignore" });
   server = spawn(process.execPath, [NEXT_BIN, "start", "-p", String(PORT)], {
     cwd: root,
     stdio: ["ignore", "ignore", "inherit"],
     env: {
-      ...process.env,
+      // No Claude credentials from this machine's shell: the AI goes to the stand-in.
+      ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("ANTHROPIC_"))),
       MONGODB_DB: DB,
       SMTP_HOST: "127.0.0.1",
       SMTP_PORT: String(SMTP_PORT),
@@ -104,21 +114,26 @@ try {
       META_CAPI_ACCESS_TOKEN: "disabled-for-test",
       HEALTH_KEY: "",
       TRUST_PROXY_HEADERS: "1",
+      ANTHROPIC_API_KEY: "e2e-fake-key",
+      ANTHROPIC_BASE_URL: `http://127.0.0.1:${AI_PORT}`,
+      ARTICLE_AI_MODEL: "",
+      CRON_SECRET: process.env.E2E_CRON_SECRET,
     },
   });
   await waitForPort(SMTP_PORT);
   await waitForPort(PORT);
 
   mongo = await MongoClient.connect(uri);
-  const ctx = { call: client(BASE), check, base: BASE, db: mongo.db(DB), mailDir, admin: ADMIN, doctor: DOCTOR, root };
+  const ctx = { call: client(BASE), check, base: BASE, db: mongo.db(DB), mailDir, admin: ADMIN, doctor: DOCTOR, root, fakeAi };
   // Order matters: Doctors & Settings changes the admin's password, so it runs last.
-  for (const suite of [schedule, security, browser, siteContent, doctors]) await suite.run(ctx);
+  for (const suite of [schedule, security, browser, siteContent, articles, articleAi, doctors]) await suite.run(ctx);
 } catch (error) {
   check(`run finished without crashing`, false, error instanceof Error ? error.stack ?? error.message : String(error));
 } finally {
   await mongo?.close().catch(() => undefined);
   server?.kill();
   sink?.kill();
+  await fakeAi?.close();
   await sleep(500);
   if (!process.argv.includes("--keep")) await dropDb().catch(() => undefined);
   fs.rmSync(mailDir, { recursive: true, force: true });

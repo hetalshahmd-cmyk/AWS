@@ -3,6 +3,10 @@ export const site = {
   tagline: "Gynecology & Women's Care",
   phone: "(623) 846-7597",
   phoneHref: "tel:+16238467597",
+  /** Fax only — shown as text, never a link (phones can't call a fax). */
+  fax: "(623) 846-1826",
+  email: "info@arizonawomenspecialists.com",
+  emailHref: "mailto:info@arizonawomenspecialists.com",
   /**
    * Where every "Book Now" CTA sends people: the provider cards on the
    * Providers page, where each provider's Book opens the booking form in
@@ -64,6 +68,14 @@ export const quickLinks = [
   },
 ];
 
+/**
+ * What we take and how WIC fits in. WIC is a nutrition program, not
+ * insurance, so it never goes in a list of plans. Used on the Services card
+ * and under the plan list (Insurance section).
+ */
+export const insuranceLine =
+  "We accept most major insurance plans and AHCCCS, and help you use your benefits. If you are pregnant, we can refer you to WIC.";
+
 export const services = [
   {
     icon: "droplet" as const,
@@ -73,7 +85,7 @@ export const services = [
   {
     icon: "waves" as const,
     title: "Ultrasound",
-    body: "Same-day and walk-in ultrasounds to confirm and check on your baby.",
+    body: "Walk-in ultrasounds to confirm your pregnancy, available the same day depending on availability. Please call ahead to check today's openings.",
   },
   {
     icon: "heart" as const,
@@ -93,7 +105,7 @@ export const services = [
   {
     icon: "tag" as const,
     title: "Insurance & AHCCCS",
-    body: "We accept most major insurance plans, AHCCCS & WIC — and help you use your benefits.",
+    body: insuranceLine,
   },
 ];
 

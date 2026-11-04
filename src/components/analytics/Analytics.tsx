@@ -6,7 +6,9 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { isPrivateLocation } from "./track";
 
-const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
+// Vercel exposes the deployment kind to the browser; previews get no pixel.
+const PREVIEW = ["preview", "development"].includes(process.env.NEXT_PUBLIC_VERCEL_ENV ?? "");
+const PIXEL_ID = PREVIEW ? "" : (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "");
 const CONSENT_COOKIE = "awsp_consent";
 const SIX_MONTHS = 60 * 60 * 24 * 182;
 

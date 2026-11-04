@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { getOfficeHours, loadSiteContent } from "@/lib/repo";
 import { hoursEmpty } from "@/lib/scheduling";
+import { site } from "@/lib/site";
 import { DEFAULT_SITE_CONTENT, officePhone } from "@/lib/site-content";
 import { resolveImage } from "@/lib/site-images";
 import Ico from "./Ico";
@@ -60,6 +61,21 @@ export default async function Locations() {
                 <br />
                 {location.address[1]}
               </address>
+              <ul className="mt-3 space-y-1 text-[0.98rem] text-plum-soft">
+                <li>
+                  Phone{" "}
+                  <a href={phone.href} className="font-medium text-plum hover:text-wine">
+                    {phone.label}
+                  </a>
+                </li>
+                <li>Fax {site.fax}</li>
+                <li>
+                  Email{" "}
+                  <a href={site.emailHref} className="break-all font-medium text-plum hover:text-wine">
+                    {site.email}
+                  </a>
+                </li>
+              </ul>
 
               {unknown || !hours ? (
                 <p className="mt-6 rounded-2xl bg-ivory px-4 py-3 text-plum-soft">

@@ -1,4 +1,5 @@
 import { MongoClient, type Db } from "mongodb";
+import { databaseProblem } from "./deploy-env";
 
 const uri = process.env.MONGODB_URI;
 const dbName = process.env.MONGODB_DB ?? "arizona";
@@ -6,6 +7,9 @@ const dbName = process.env.MONGODB_DB ?? "arizona";
 if (!uri) {
   throw new Error("MONGODB_URI is not set. Copy .env.example to .env.local and fill it in.");
 }
+// A preview deployment refuses to start on anything but a staging database.
+const unsafeDatabase = databaseProblem();
+if (unsafeDatabase) throw new Error(unsafeDatabase);
 
 // Next hot-reloads modules in dev; cache the client on globalThis so we don't
 // open a new pool on every reload. In serverless the same instance is reused
@@ -84,6 +88,14 @@ export function ensureIndexes(): Promise<void> {
       db.collection("bookings").createIndex({ date: 1, time: 1 }),
       db.collection("plans").createIndex({ order: 1 }),
       db.collection("email_otps").createIndex({ email: 1 }, { unique: true }),
+      db.collection("articles").createIndex({ slug: 1 }, { unique: true }),
+      db.collection("articles").createIndex({ "live.slug": 1 }, { sparse: true }),
+      db.collection("articles").createIndex({ "live.publishedAt": -1 }),
+      db.collection("articles").createIndex({ updatedAt: -1 }),
+      db.collection("article_topics").createIndex({ key: 1 }, { unique: true }),
+      db.collection("article_topics").createIndex({ status: 1, createdAt: 1 }),
+      db.collection("article_generations").createIndex({ at: -1 }),
+      db.collection("article_generations").createIndex({ day: 1, trigger: 1 }),
       db.collection("rate_limits").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
       // Mongo sweeps expired codes an hour after they lapse.
       db.collection("email_otps").createIndex({ expiresAt: 1 }, { expireAfterSeconds: 3600 }),

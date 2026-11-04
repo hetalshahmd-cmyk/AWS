@@ -74,6 +74,20 @@ Two things bite in production:
   blocking them. Add `0.0.0.0/0` under Atlas → Network Access. Percent-encode
   any special characters in the URI password (`@` = `%40`, `:` = `%3A`).
 
+**Preview deployments** are made by Vercel for every branch other than `main`
+pushed to the repo it deploys from, and they are kept away from patients
+(`src/lib/deploy-env.ts`). A preview:
+
+- refuses to start unless `MONGODB_DB` ends in `_staging` and
+  `STAGING_DATABASE_CONFIRMED=1` is set;
+- emails only the addresses in `PREVIEW_MAIL_ALLOWLIST`;
+- sends nothing to Meta and loads no pixel;
+- runs no reminders and is never indexed by search engines.
+
+Give the Preview environment its own `MONGODB_URI` (a separate staging
+cluster or database user), `MONGODB_DB`, `SESSION_SECRET` and `CRON_SECRET`.
+Never use the "All environments" scope for secrets.
+
 Check a deployment's settings from your machine — real env vars win over
 `.env.local`:
 
@@ -356,14 +370,76 @@ office *ids* (`maryvale`, `arrowhead`) never change. The starting content is
 `DEFAULT_SITE_CONTENT` in `src/lib/site-content.ts`; it is written to the
 database on first start.
 
+## Articles (blog)
+
+**Admin → Articles** writes health articles; each one needs a doctor's medical
+approval before it can be published at `/blog/<address>`.
+
+- **Steps:** draft → *Send for medical review* (choose a doctor with a
+  sign-in) → the doctor approves or asks for changes under **Article reviews**
+  in their own panel → an admin publishes. Only the assigned doctor can
+  approve, and only an admin can publish.
+- **Approval is tied to the exact text.** It stores a SHA-256 fingerprint of
+  the title, address, search title, description, keyword, text and cover.
+  Saving any change clears the approval and returns the article to draft, and
+  a doctor approving text that changed while they read it is refused.
+- **The site shows a frozen copy.** Publishing copies the approved version to
+  `live`; later edits never reach the public page until they are approved and
+  published again. Once public, an article's address is locked.
+- **History:** every step (who, when, which version, notes) is kept on the
+  article, newest 500 entries.
+- **Text** is a small Markdown subset (headings, lists, bold/italic, links,
+  notes), rendered as React elements, never as HTML. Links may point only to
+  site pages, existing articles or `https://` sources; anything else is
+  refused on save. `/blog` returns 404 until something is published.
+- **Link suggestions** (`suggestLinks` in `src/lib/articles.ts`) find
+  unlinked mentions of services, providers, booking, pricing, offices and
+  other published articles' focus keywords.
+- **SEO:** search title and description with counters, a search preview, a
+  checklist, canonical URL, Open Graph article tags, `MedicalWebPage` JSON-LD
+  with the reviewer, and `sitemap.xml` (linked from `robots.txt`).
+- The Meta pixel doesn't load on `/blog` pages: what someone reads can hint at
+  a health condition.
+
+### AI drafts
+
+**Admin → Articles → AI article writer** writes first drafts with Claude
+(`ARTICLE_AI_MODEL`, default `claude-haiku-5-5`, which costs under a cent per
+draft). A draft is sent straight to the chosen doctor's review queue and
+follows exactly the same approval and publishing rules as any other article.
+
+- **Topics** (Admin → Articles → Topics) start from a list of 35 searches about
+  pregnancy testing, ultrasound, prenatal care, gynecology and birth control,
+  some local to Phoenix, Maryvale and Glendale. A topic that repeats another
+  topic or an existing article is refused (same words, or 75% overlap), and a
+  topic is checked again just before writing.
+- **The model writes words only** (`src/lib/article-ai.ts`). Code adds the
+  "When to call your doctor", FAQ and References sections, and keeps only
+  links to real site pages. Sources are picked by id from
+  `src/lib/article-references.ts`, a hand-checked list, so the AI can't invent
+  one; any web address it types is turned back into plain text. Up to four
+  internal links are added from the link suggestions.
+- **Medical safety** is in the instructions: no diagnosis, no doses, no
+  invented statistics or practice facts, always "when to call / 911". Doctors
+  see a "Written with AI" warning on the review page.
+- **No patient data** is sent: only services, offices and article titles.
+- **Daily draft:** `/api/cron/articles` writes the next topic once per Arizona
+  day. It needs `CRON_SECRET`, does nothing unless switched on in the admin
+  panel, and is refused on preview deployments. To run it, add it to
+  `vercel.json` `crons`, for example
+  `{ "path": "/api/cron/articles", "schedule": "0 14 * * *" }` (7 am Arizona).
+- **Guards:** 10 "Generate" clicks a day at most; a topic that fails three
+  times is set aside; every run is logged in `article_generations` with its
+  tokens and an estimated cost, and this month's total is shown in the panel.
+
 ## Testing
 
 - `npm test` — unit tests (`tests/unit`, Node's test runner via `tsx`).
 - `npm run test:e2e` — builds, seeds a throwaway `arizona_e2e` database on a
   **local** MongoDB, starts the app with a fake mail server, and runs every
   suite in `tests/e2e`: fixed schedule, security, a headless-Chrome pass over
-  booking (skipped if Chrome isn't found; set `CHROME_PATH`), and Doctors &
-  Settings. It refuses a non-local `MONGODB_URI` and drops the test database
+  booking (skipped if Chrome isn't found; set `CHROME_PATH`), Modify site,
+  Articles & medical review, and Doctors & Settings. It refuses a non-local `MONGODB_URI` and drops the test database
   afterwards (`--keep` to inspect it, `--no-build` to reuse the last build).
 - GitHub Actions (`.github/workflows/ci.yml`) runs lint, type-check, unit and
   end-to-end tests on every push, with MongoDB as a service.

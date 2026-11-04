@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import nodemailer, { type Transporter } from "nodemailer";
+import { mailAllowed } from "./deploy-env";
 import { site } from "./site";
 
 export type SmtpCandidate = { host: string; port: number; secure: boolean };
@@ -151,6 +152,12 @@ export async function sendMail(options: {
   text: string;
   html: string;
 }): Promise<void> {
+  // Every email the site sends comes through here. A preview deployment
+  // emails only the staff test inboxes it is given — never a patient.
+  if (!mailAllowed(options.to)) {
+    console.warn(`preview deployment: email not sent ("${options.subject}")`);
+    return;
+  }
   const { transport } = await resolveTransport();
   try {
     await transport.sendMail({ from, ...options });

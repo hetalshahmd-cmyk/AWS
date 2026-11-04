@@ -71,6 +71,17 @@ export default async function SiteFooter() {
                 <Ico name="phone" className="h-5 w-5 text-wine" />
                 {site.phone}
               </PhoneLink>
+              <p className="mt-3 flex items-center gap-2.5 text-[0.95rem]">
+                <Ico name="fax" className="h-[18px] w-[18px] text-wine" />
+                Fax {site.fax}
+              </p>
+              <a
+                href={site.emailHref}
+                className="focus-ring mt-2 flex items-center gap-2.5 break-all text-[0.95rem] transition hover:text-wine"
+              >
+                <Ico name="mail" className="h-[18px] w-[18px] shrink-0 text-wine" />
+                {site.email}
+              </a>
             </div>
 
             <nav aria-label="Footer">

@@ -36,6 +36,9 @@ export function newEventId(): string {
  */
 export function isPrivateLocation(pathname: string, search = ""): boolean {
   if (/^\/(appointment|my-bookings|admin)(\/|$)/.test(pathname)) return true;
+  // Health articles: which one a browser reads can hint at a condition or a
+  // pregnancy, so the pixel stays off the blog too.
+  if (/^\/blog(\/|$)/.test(pathname)) return true;
   // Sign-in pages on their way back to an appointment carry its link in `next`.
   if (/^\/(login|register)$/.test(pathname) && /appointment/i.test(search)) return true;
   return pathname === "/book" && /[?&]reschedule=/.test(search);

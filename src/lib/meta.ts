@@ -17,6 +17,8 @@
  * that the payload is built here, where it can be kept clean by construction.
  */
 
+import { isPreviewDeploy } from "./deploy-env";
+
 /** Public — inlined into the browser bundle. Same number as the dataset ID. */
 export const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
 
@@ -38,7 +40,8 @@ export const CONSENT_COOKIE = "awsp_consent";
 /** First-party copy of the ad click id, written by middleware. */
 export const CLICK_COOKIE = "awsp_fbclid";
 
-export const isMetaConfigured = Boolean(PIXEL_ID && ACCESS_TOKEN);
+// Never from a preview deployment: test clicks must not count as real ones.
+export const isMetaConfigured = Boolean(PIXEL_ID && ACCESS_TOKEN) && !isPreviewDeploy();
 
 /** Event names we are willing to send. A closed list, on purpose. */
 export type MetaEventName = "Schedule" | "CompleteRegistration" | "Lead" | "Contact";

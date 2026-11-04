@@ -8,5 +8,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/admin", "/appointment", "/my-bookings", "/login", "/register", "/api"],
     },
+    sitemap: `${(process.env.NEXT_PUBLIC_SITE_URL ?? "https://arizonawomenspecialists.com").replace(/\/+$/, "")}/sitemap.xml`,
   };
 }

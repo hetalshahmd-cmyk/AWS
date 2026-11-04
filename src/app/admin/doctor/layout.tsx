@@ -6,7 +6,10 @@ import { providerById } from "@/lib/scheduling";
 
 export const dynamic = "force-dynamic";
 
-const LINKS: StaffLink[] = [{ href: "/admin/doctor", label: "My appointments", icon: "cal" }];
+const LINKS: StaffLink[] = [
+  { href: "/admin/doctor", label: "My appointments", icon: "cal", exact: true },
+  { href: "/admin/doctor/reviews", label: "Article reviews", icon: "check" },
+];
 
 /**
  * A provider's own panel. Same sign-in as the admin; only provider accounts

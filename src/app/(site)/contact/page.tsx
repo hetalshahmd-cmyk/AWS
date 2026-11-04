@@ -59,10 +59,11 @@ export default async function ContactPage() {
           Our offices
         </h2>
 
-        <div className="mb-10 grid gap-4 min-[760px]:grid-cols-3">
+        {/* Call, fax and email on top; hours and booking below — the email is too long for a fifth of the row. */}
+        <div className="mb-10 grid gap-4 min-[640px]:grid-cols-2 min-[1060px]:grid-cols-6">
           <PhoneLink
             href={site.phoneHref}
-            className={`${TILE} hover:-translate-y-1 hover:border-wine/40 hover:shadow-soft`}
+            className={`${TILE} hover:-translate-y-1 hover:border-wine/40 hover:shadow-soft min-[1060px]:col-span-2`}
           >
             <IconTile name="phone" />
             <span>
@@ -70,7 +71,24 @@ export default async function ContactPage() {
               <span className={`${VALUE} group-hover:text-wine`}>{site.phone}</span>
             </span>
           </PhoneLink>
-          <div className={TILE}>
+          <div className={`${TILE} min-[1060px]:col-span-2`}>
+            <IconTile name="fax" />
+            <span>
+              <span className={LABEL}>Fax</span>
+              <span className={VALUE}>{site.fax}</span>
+            </span>
+          </div>
+          <a
+            href={site.emailHref}
+            className={`${TILE} hover:-translate-y-1 hover:border-wine/40 hover:shadow-soft min-[640px]:col-span-2 min-[1060px]:col-span-2`}
+          >
+            <IconTile name="mail" />
+            <span className="min-w-0">
+              <span className={LABEL}>Email</span>
+              <span className={`${VALUE} break-words text-[1.05rem] group-hover:text-wine`}>{site.email}</span>
+            </span>
+          </a>
+          <div className={`${TILE} min-[1060px]:col-span-3`}>
             <IconTile name="clock" />
             <span>
               <span className={LABEL}>
@@ -81,7 +99,7 @@ export default async function ContactPage() {
           </div>
           <BookLink
             href={site.bookCta}
-            className={`${TILE} hover:-translate-y-1 hover:border-wine/40 hover:shadow-soft`}
+            className={`${TILE} hover:-translate-y-1 hover:border-wine/40 hover:shadow-soft min-[1060px]:col-span-3`}
           >
             <IconTile name="cal" />
             <span>

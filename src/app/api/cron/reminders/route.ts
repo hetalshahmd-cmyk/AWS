@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { sendReminder } from "@/lib/appointment-emails";
 import { addDays } from "@/lib/availability";
 import { claimReminder, listReminderCandidates, type ReminderKey } from "@/lib/repo";
+import { isPreviewDeploy } from "@/lib/deploy-env";
 import { arizonaTodayIso } from "@/lib/scheduling";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,10 @@ const PLAN: { key: ReminderKey; days: number }[] = [
 ];
 
 export async function GET(request: Request) {
+  // Vercel only runs cron jobs on production; this makes sure of it.
+  if (isPreviewDeploy()) {
+    return NextResponse.json({ error: "Reminders run on the live site only" }, { status: 403 });
+  }
   if (!authorized(request)) {
     return NextResponse.json({ error: "Not authorized" }, { status: 401 });
   }

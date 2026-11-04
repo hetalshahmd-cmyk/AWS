@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { photos, type PhotoKey } from "@/lib/photos";
-import { insurancePills, insurancePlans, site } from "@/lib/site";
+import { insuranceLine, insurancePills, insurancePlans, site } from "@/lib/site";
 import Ico from "./Ico";
 import { SectionHead } from "./ui";
 import PhoneLink from "@/components/analytics/PhoneLink";
@@ -87,6 +87,7 @@ export default function InsuranceSection({
             ))}
           </ul>
         </details>
+        <p className="mt-5 text-[0.95rem] leading-relaxed text-plum-soft">{insuranceLine}</p>
       </div>
     </div>
   );
