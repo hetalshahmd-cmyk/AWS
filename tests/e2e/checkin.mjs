@@ -11,12 +11,19 @@ export async function run({ call, check, db, admin }) {
   await call(A, "POST", "/api/admin/session", admin);
 
   // An upcoming visit whose earlier check-in has health answers (demo data).
-  const booking = await db.collection("bookings").findOne(
+  const found = await db.collection("bookings").findOne(
     { status: "confirmed", lang: { $ne: "es" }, date: { $gt: arizonaToday() }, "intake.allergies": { $nin: ["", null] } },
     { sort: { date: 1 } },
   );
-  check("there is an upcoming visit with an earlier check-in to test with", Boolean(booking));
-  if (!booking) return;
+  check("there is an upcoming visit with an earlier check-in to test with", Boolean(found));
+  if (!found) return;
+  // Answers no page could contain by chance (the demo data is random: it can be
+  // empty, or "Birth control pill", which the site mentions anyway).
+  await db.collection("bookings").updateOne(
+    { _id: found._id },
+    { $set: { "intake.allergies": "E2E allergy 7731", "intake.medications": "E2E medication 7731" } },
+  );
+  const booking = await db.collection("bookings").findOne({ _id: found._id });
   const token = manageToken(booking._id.toString());
   const before = Object.fromEntries(HEALTH.map((key) => [key, booking.intake[key]]));
 

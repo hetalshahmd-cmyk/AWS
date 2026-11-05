@@ -228,9 +228,12 @@ export const seedProviders = [
     name: "Dr. Hetalkumar Shah, MD",
     cred: "Gynecologist",
     languages: ["English", "Hindi", "Spanish"],
-    zocdocRating: null,
-    zocdocReviews: null,
+    // His reviews are on his older Zocdoc profile; the one above (808675) is
+    // the practice's booking profile and has none yet. As Zocdoc showed it, Nov 2026.
+    zocdocRating: 4.41,
+    zocdocReviews: 17,
     zocdocUrl: "https://www.zocdoc.com/doctor/hetalkumar-shah-md-808675",
+    zocdocReviewsUrl: "https://www.zocdoc.com/doctor/hetalkumar-shah-md-242086",
     ecwUrl: null as string | null,
     npi: "1750363255",
     about: [

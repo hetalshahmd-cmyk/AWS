@@ -55,6 +55,14 @@ export async function run({ call, check, base, admin, doctor }) {
   check("bad links, NPI and rating refused", bad.every((r) => r.status === 400));
   const checkedNow = await call(A, "PATCH", "/api/admin/doctors/denton", { ...edited.data.provider, languages: "English, Spanish", zocdocCheckedNow: true });
   check("'I checked Zocdoc today' records the date", checkedNow.data?.provider?.zocdocCheckedAt === today);
+  // Dr. Shah's reviews are on his older Zocdoc profile; his stars open that one.
+  const shah = list.data.providers.find((p) => p.id === "shah");
+  const about = (await call(null, "GET", "/about")).text;
+  check(
+    "Dr. Shah shows his Zocdoc rating and reviews, linked to the profile that has them",
+    shah.zocdocRating === 4.41 && shah.zocdocReviews === 17 && shah.zocdocReviewsUrl.endsWith("hetalkumar-shah-md-242086") && about.includes("4.41") && about.includes("hetalkumar-shah-md-242086"),
+  );
+  check("…a bad reviews link is refused", (await call(A, "PATCH", "/api/admin/doctors/shah", { ...shah, zocdocReviewsUrl: "javascript:alert(1)" })).status === 400);
 
   const created = await call(A, "POST", "/api/admin/doctors", {
     name: "Dr. Maria Lopez, MD",

@@ -114,6 +114,7 @@ function toProvider({ _id, updatedAt: _ignored, ...rest }: ProviderDoc): Provide
     id: _id,
     ...rest,
     zocdocCheckedAt: rest.zocdocCheckedAt ?? null,
+    zocdocReviewsUrl: rest.zocdocReviewsUrl ?? null,
     // Profiles saved before these settings existed.
     bookable: rest.bookable ?? true,
     badge: rest.badge ?? null,
@@ -169,6 +170,33 @@ export async function loadProviders(force = false): Promise<Provider[]> {
               update: { $set: seedRouting(DEFAULT_PROVIDERS.find((provider) => provider.id === doc._id) ?? {}) },
             },
           })),
+          { ordered: false },
+        )
+        .catch(() => undefined);
+      docs = await collection.find().sort({ order: 1 }).toArray();
+    }
+    // Profiles from before the reviews link existed get it once, from the
+    // seed list — with Dr. Shah's rating and count, which used to be empty,
+    // filled in only if they still are. An admin's numbers are never touched,
+    // and once the field exists this never runs for that profile again.
+    const noReviewsLink = docs.filter((doc) => (doc as Partial<ProviderDoc>).zocdocReviewsUrl === undefined);
+    if (noReviewsLink.length) {
+      await collection
+        .bulkWrite(
+          noReviewsLink.map((doc) => {
+            const seed = DEFAULT_PROVIDERS.find((provider) => provider.id === doc._id);
+            const fill = seed && seed.zocdocReviews !== null && doc.zocdocReviews === null && doc.zocdocRating === null;
+            return {
+              updateOne: {
+                filter: { _id: doc._id, zocdocReviewsUrl: { $exists: false } },
+                update: {
+                  $set: fill
+                    ? { zocdocReviewsUrl: seed.zocdocReviewsUrl, zocdocRating: seed.zocdocRating, zocdocReviews: seed.zocdocReviews }
+                    : { zocdocReviewsUrl: null },
+                },
+              },
+            };
+          }),
           { ordered: false },
         )
         .catch(() => undefined);
@@ -257,6 +285,7 @@ export function cleanProviderInput(
     zocdocRating: rating,
     zocdocReviews: reviews,
     zocdocUrl: cleanUrl(input.zocdocUrl, "Zocdoc link"),
+    zocdocReviewsUrl: cleanUrl(input.zocdocReviewsUrl, "Zocdoc reviews link"),
     ecwUrl: cleanUrl(input.ecwUrl, "eCW link"),
     npi,
     about: cleanLines(input.about, 6, 1200),

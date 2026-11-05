@@ -8,7 +8,7 @@ import { track } from "@/components/analytics/track";
 import { isOfficeId } from "@/lib/scheduling";
 import { site } from "@/lib/site";
 import { getOffices } from "@/lib/site-content";
-import { getProviders, type Provider } from "@/lib/providers";
+import { getProviders, type Provider, zocdocReviewsHref } from "@/lib/providers";
 import Ico from "./Ico";
 import ProviderAvatar from "./ProviderAvatar";
 import ZocdocReviews from "./ZocdocReviews";
@@ -250,7 +250,7 @@ function ProviderProfile({
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
               {provider.zocdocReviews ? (
                 <a
-                  href={provider.zocdocUrl ?? undefined}
+                  href={zocdocReviewsHref(provider)}
                   target="_blank"
                   rel="noreferrer"
                   className="focus-ring inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white px-3 py-1 text-[0.82rem] text-plum transition hover:bg-ivory"

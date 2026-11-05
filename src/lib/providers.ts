@@ -30,6 +30,11 @@ export type Provider = {
   zocdocReviews: number | null;
   zocdocUrl: string | null;
   /**
+   * Where the stars link to, when the reviews are on a different Zocdoc
+   * profile from the one patients book on. Null: the Zocdoc profile above.
+   */
+  zocdocReviewsUrl: string | null;
+  /**
    * When someone last compared the rating and review count with Zocdoc
    * (YYYY-MM-DD). Zocdoc can't be read automatically — it blocks bots — so
    * the admin panel asks for a fresh look after 30 days.
@@ -101,6 +106,11 @@ export function initialsOf(name: string): string {
 }
 
 /** "Dr. Hetalkumar Shah, MD" → "Book with Dr. Shah"; "Kylee Tate, PA-C" → "Book with Kylee". */
+/** The page the stars open: the reviews profile, else the Zocdoc profile. */
+export function zocdocReviewsHref(provider: Pick<Provider, "zocdocReviewsUrl" | "zocdocUrl">): string | undefined {
+  return provider.zocdocReviewsUrl ?? provider.zocdocUrl ?? undefined;
+}
+
 export function ctaFor(name: string): string {
   const plain = name.split(",")[0].trim();
   if (/^dr\.?\s/i.test(plain)) {
@@ -122,6 +132,7 @@ export const DEFAULT_PROVIDERS: Provider[] = seedProviders.map((provider, order)
   zocdocRating: provider.zocdocRating,
   zocdocReviews: provider.zocdocReviews,
   zocdocUrl: provider.zocdocUrl,
+  zocdocReviewsUrl: "zocdocReviewsUrl" in provider ? provider.zocdocReviewsUrl : null,
   // The day these numbers were read from Zocdoc for the seed list.
   zocdocCheckedAt: "2026-10-06",
   ecwUrl: provider.ecwUrl,

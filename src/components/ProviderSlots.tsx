@@ -12,7 +12,7 @@ import {
 } from "@/lib/scheduling";
 import { site } from "@/lib/site";
 import { getOffices } from "@/lib/site-content";
-import { getBookableProviders, type Provider } from "@/lib/providers";
+import { getBookableProviders, type Provider, zocdocReviewsHref } from "@/lib/providers";
 import { weekLines } from "./site/WeekHours";
 import PhoneLink from "./analytics/PhoneLink";
 import ProviderAvatar from "./site/ProviderAvatar";
@@ -232,7 +232,7 @@ function ProviderCard({ provider, days }: { provider: Provider; days: DayAvailab
             <p className="mt-0.5 text-[15px] text-ink-soft">{provider.cred}</p>
             {provider.zocdocReviews ? (
               <a
-                href={provider.zocdocUrl ?? undefined}
+                href={zocdocReviewsHref(provider)}
                 target="_blank"
                 rel="noreferrer"
                 className="focus-ring mt-1 inline-flex items-center gap-1 rounded text-[14px] text-ink-soft hover:underline"

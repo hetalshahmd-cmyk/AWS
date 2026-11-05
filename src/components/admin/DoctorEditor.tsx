@@ -28,6 +28,7 @@ type Draft = {
   certifications: string;
   focus: string;
   zocdocUrl: string;
+  zocdocReviewsUrl: string;
   zocdocRating: string;
   zocdocReviews: string;
   ecwUrl: string;
@@ -52,6 +53,7 @@ function toDraft(provider: Provider | null): Draft {
     certifications: provider?.certifications.join("\n") ?? "",
     focus: provider?.focus.join("\n") ?? "",
     zocdocUrl: provider?.zocdocUrl ?? "",
+    zocdocReviewsUrl: provider?.zocdocReviewsUrl ?? "",
     zocdocRating: provider?.zocdocRating?.toString() ?? "",
     zocdocReviews: provider?.zocdocReviews?.toString() ?? "",
     ecwUrl: provider?.ecwUrl ?? "",
@@ -122,6 +124,7 @@ export default function DoctorEditor({
       zocdocReviews: null,
       zocdocCheckedAt: null,
       zocdocUrl: null,
+      zocdocReviewsUrl: null,
       ecwUrl: null,
       npi: "",
       cta: "",
@@ -394,6 +397,16 @@ export default function DoctorEditor({
             <label className="block md:col-span-2">
               <span className={LABEL}>Zocdoc profile link</span>
               <input type="url" value={draft.zocdocUrl} onChange={set("zocdocUrl")} placeholder="https://www.zocdoc.com/doctor/…" className={FIELD} />
+            </label>
+            <label className="block md:col-span-2">
+              <span className={LABEL}>Zocdoc reviews link (only if the reviews are on another Zocdoc profile)</span>
+              <input
+                type="url"
+                value={draft.zocdocReviewsUrl}
+                onChange={set("zocdocReviewsUrl")}
+                placeholder="Leave empty to use the Zocdoc profile link"
+                className={FIELD}
+              />
             </label>
             <label className="block">
               <span className={LABEL}>Zocdoc rating (0–5)</span>
