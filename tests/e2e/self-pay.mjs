@@ -3,7 +3,7 @@
 const PENDING_PLANS = ["Molina", "Imperial", "UPMC", "HealthSmart", "Multiplan", "Prime Health", "Provider Network of America", "See all accepted plans"];
 const clean = (html) => html.replace(/<!-- -->/g, "").replace(/&#x27;/g, "'").replace(/&amp;/g, "&");
 
-export async function run({ call, check }) {
+export async function run({ call, check, db }) {
   console.log("\n# Self Pay and Insurance tabs");
 
   const old = await call(null, "GET", "/pricing");
@@ -20,6 +20,13 @@ export async function run({ call, check }) {
   const home = clean((await call(null, "GET", "/")).text);
   check("the menu has Insurance and Self Pay, and no Pricing", home.includes(">Insurance<") && home.includes(">Self Pay<") && !home.includes('href="/pricing"'));
   check("the Home page no longer lists those plans either", PENDING_PLANS.every((plan) => !home.includes(plan)) && home.includes("See the plans we accept"));
+  const plans = await db.collection("plans").find().toArray();
+  const firstVisit = plans.find((plan) => /new patient/i.test(`${plan.title} ${plan.tag}`));
+  check(
+    "the Home page's Self Pay card quotes the price from Admin → Pricing",
+    Boolean(firstVisit) && home.includes(`${firstVisit.amount.replace(/\.00$/, "")} first visit`),
+    firstVisit?.amount,
+  );
   check("\"Cash Pay\" appears nowhere", !/cash pay/i.test(home) && !/cash pay/i.test(page));
 
   const insurance = await call(null, "GET", "/insurance");

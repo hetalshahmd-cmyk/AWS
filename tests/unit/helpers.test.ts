@@ -3,6 +3,7 @@
  * rely on. No database or server needed:  npm test
  */
 import { cleanPhone, phoneCountries, phoneHref } from "@/lib/phone";
+import { selfPayLine } from "@/lib/site";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { safeNext } from "@/components/auth/safe-next";
@@ -164,6 +165,19 @@ describe("insurance picker", () => {
     assert.deepEqual(plansFor("Velocity"), ["Auto", "PPO", "Workers Comp"]);
     assert.equal(acceptedNetworks.length, 11);
     assert.equal(new Set(carriers.map((carrier) => carrier.name)).size, carriers.length, "no carrier twice");
+  });
+});
+
+describe("home page Self Pay card", () => {
+  it("quotes the prices from Admin → Pricing", () => {
+    const plans = [
+      { tag: "New Patient", title: "New Patient Visit", amount: "$125.00" },
+      { tag: "Returning", title: "Established Patient Visit", amount: "$100.00" },
+      { tag: "Birth Control", title: "IUD Removal", amount: "$200.00" },
+    ];
+    assert.equal(selfPayLine(plans), "$125 first visit · $100 follow-up");
+    assert.equal(selfPayLine([plans[0]]), "$125 first visit");
+    assert.equal(selfPayLine([plans[2]]), null);
   });
 });
 

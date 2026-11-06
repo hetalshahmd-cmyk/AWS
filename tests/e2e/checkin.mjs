@@ -10,9 +10,10 @@ export async function run({ call, check, db, admin }) {
   const A = jar();
   await call(A, "POST", "/api/admin/session", admin);
 
-  // An upcoming visit whose earlier check-in has health answers (demo data).
+  // An upcoming visit, given health answers from an "earlier check-in".
   const found = await db.collection("bookings").findOne(
-    { status: "confirmed", lang: { $ne: "es" }, date: { $gt: arizonaToday() }, "intake.allergies": { $nin: ["", null] } },
+    // Any upcoming English visit — its earlier answers are set just below.
+    { status: "confirmed", lang: { $ne: "es" }, date: { $gt: arizonaToday() } },
     { sort: { date: 1 } },
   );
   check("there is an upcoming visit with an earlier check-in to test with", Boolean(found));
@@ -21,7 +22,20 @@ export async function run({ call, check, db, admin }) {
   // empty, or "Birth control pill", which the site mentions anyway).
   await db.collection("bookings").updateOne(
     { _id: found._id },
-    { $set: { "intake.allergies": "E2E allergy 7731", "intake.medications": "E2E medication 7731" } },
+    {
+      $set: {
+        intake: {
+          ...(found.intake ?? {}),
+          allergies: "E2E allergy 7731",
+          medications: "E2E medication 7731",
+          conditions: "E2E condition 7731",
+          surgeries: "",
+          lmp: "",
+          pregnant: "yes",
+          pregnancies: "2",
+        },
+      },
+    },
   );
   const booking = await db.collection("bookings").findOne({ _id: found._id });
   const token = manageToken(booking._id.toString());

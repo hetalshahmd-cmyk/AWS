@@ -48,6 +48,25 @@ export const heroChips = [
   "100% confidential",
 ];
 
+/** "$125.00" → "$125"; anything else is kept as written. */
+function shortPrice(amount: string): string {
+  return amount.trim().replace(/\.00$/, "");
+}
+
+/**
+ * "$125 first visit · $100 follow-up", from the Self Pay prices an admin
+ * keeps in Admin → Pricing, so the home page can never disagree with the
+ * Self Pay page. Null when those two visits aren't in the list.
+ */
+export function selfPayLine(plans: { title: string; tag: string; amount: string }[]): string | null {
+  const text = (plan: { title: string; tag: string }) => `${plan.title} ${plan.tag}`;
+  const first = plans.find((plan) => /new patient/i.test(text(plan)));
+  const followUp = plans.find((plan) => /established|follow|returning/i.test(text(plan)));
+  if (first && followUp) return `${shortPrice(first.amount)} first visit · ${shortPrice(followUp.amount)} follow-up`;
+  if (first) return `${shortPrice(first.amount)} first visit`;
+  return null;
+}
+
 export const quickLinks = [
   {
     href: "/services",
@@ -59,7 +78,8 @@ export const quickLinks = [
     href: "/self-pay",
     icon: "tag" as const,
     title: "Self Pay",
-    body: "$100 first visit · $75 follow-up",
+    // Replaced on the home page by the prices in Admin → Pricing (selfPayLine).
+    body: "Upfront prices, no surprises",
   },
   {
     href: "/contact",

@@ -12,7 +12,7 @@ import PhoneLink from "@/components/analytics/PhoneLink";
 export const metadata: Metadata = {
   title: `Self-Pay Pricing — ${site.name}`,
   description:
-    "Transparent self-pay pricing: $100 new patient visit, $75 follow-up, $75 ultrasound, plus birth control services. AHCCCS accepted.",
+    "Upfront self-pay prices for new and follow-up visits, ultrasound and birth control services, plus a free pregnancy test. AHCCCS accepted.",
   alternates: { canonical: "/self-pay" },
 };
 

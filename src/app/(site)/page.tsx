@@ -20,8 +20,8 @@ import {
   SectionHead,
 } from "@/components/site/ui";
 import { photos } from "@/lib/photos";
-import { loadSiteContent } from "@/lib/repo";
-import { heroChips, providerCreds, quickLinks, site } from "@/lib/site";
+import { getPlans, loadSiteContent } from "@/lib/repo";
+import { heroChips, providerCreds, quickLinks, selfPayLine, site } from "@/lib/site";
 import { DEFAULT_SITE_CONTENT } from "@/lib/site-content";
 import { resolveImage } from "@/lib/site-images";
 
@@ -32,6 +32,9 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   // Edited in Admin → Site content.
   const { hero } = await loadSiteContent().catch(() => DEFAULT_SITE_CONTENT);
+  // The Self Pay card quotes the same prices as the Self Pay page.
+  const priceLine = selfPayLine(await getPlans().catch(() => []));
+  const links = quickLinks.map((link) => (link.href === "/self-pay" && priceLine ? { ...link, body: priceLine } : link));
   const slides: HeroSlide[] = hero.slides.map((slide) => {
     const image = resolveImage(slide.image);
     return {
@@ -117,7 +120,7 @@ export default async function HomePage() {
             </p>
 
             <ul className="mt-10 border-t border-plum/10">
-              {quickLinks.map((link) => (
+              {links.map((link) => (
                 <li key={link.href} className="border-b border-plum/10">
                   <Link
                     href={link.href}
