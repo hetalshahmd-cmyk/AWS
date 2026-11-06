@@ -1,4 +1,6 @@
 import SiteNav from "@/components/site/SiteNav";
+import { hasLiveArticles } from "@/lib/articles-repo";
+import { navLinksFor } from "@/lib/site";
 import SiteFooter from "@/components/site/SiteFooter";
 
 /**
@@ -7,10 +9,10 @@ import SiteFooter from "@/components/site/SiteFooter";
  * change in the admin panel shows on the next page view.
  */
 
-export default function SiteLayout({ children }: { children: React.ReactNode }) {
+export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <SiteNav />
+      <SiteNav links={navLinksFor(await hasLiveArticles().catch(() => false))} />
       <main id="main" className="flex-1">
         {children}
       </main>

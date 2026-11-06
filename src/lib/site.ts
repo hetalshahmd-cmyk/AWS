@@ -30,14 +30,28 @@ export const site = {
   footerBlurb: "Compassionate pregnancy and women's health care in Phoenix & Glendale.",
 };
 
-export const navLinks = [
+export type NavLink = { href: string; label: string };
+
+/**
+ * The top menu, left to right: what we do, who sees you, how to pay, then
+ * Blog and Contact. Blog is only shown once an article is published.
+ */
+const allNavLinks: (NavLink & { needsArticles?: boolean })[] = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
+  { href: "/about", label: "Providers" },
   { href: "/insurance", label: "Insurance" },
   { href: "/self-pay", label: "Self Pay" },
-  { href: "/about", label: "Providers" },
+  { href: "/blog", label: "Blog", needsArticles: true },
   { href: "/contact", label: "Contact" },
 ];
+
+export function navLinksFor(hasArticles: boolean): NavLink[] {
+  return allNavLinks.filter((link) => hasArticles || !link.needsArticles).map(({ href, label }) => ({ href, label }));
+}
+
+/** The menu without Blog — for places that can't ask the database. */
+export const navLinks: NavLink[] = navLinksFor(false);
 
 export const heroChips = [
   "Same-day appointments",

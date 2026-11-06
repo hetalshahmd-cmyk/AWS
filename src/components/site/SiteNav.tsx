@@ -4,13 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { navLinks, site } from "@/lib/site";
+import { navLinks as defaultLinks, site, type NavLink } from "@/lib/site";
 import PhoneLink from "@/components/analytics/PhoneLink";
 import Ico from "./Ico";
 import UserMenu from "./UserMenu";
 import { BookButton, Button } from "./ui";
 
-export default function SiteNav() {
+export default function SiteNav({ links = defaultLinks }: { links?: NavLink[] }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -87,8 +87,8 @@ export default function SiteNav() {
           </Link>
 
           <nav aria-label="Primary" className="hidden min-[1060px]:block">
-            <ul className="flex items-center gap-8">
-              {navLinks.map((link) => {
+            <ul className="flex items-center gap-5 min-[1200px]:gap-8">
+              {links.map((link) => {
                 const active = isActive(link.href);
                 return (
                   <li key={link.href}>
@@ -159,7 +159,7 @@ export default function SiteNav() {
         <div className="mx-auto flex min-h-full w-full max-w-[640px] flex-col px-[clamp(20px,5vw,48px)] pb-10 pt-[156px]">
           <nav aria-label="Mobile">
             <ul className="divide-y divide-mist border-y border-mist">
-              {navLinks.map((link, index) => {
+              {links.map((link, index) => {
                 const active = isActive(link.href);
                 return (
                   <li key={link.href}>

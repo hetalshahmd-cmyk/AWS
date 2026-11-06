@@ -40,6 +40,13 @@ export async function run({ call, check, db, admin, doctor }) {
   check("the admin page opens", (await call(A, "GET", "/admin/articles")).text.includes("Articles"));
   check("nothing published: /blog doesn't exist yet", (await call(null, "GET", "/blog")).status === 404);
   check("…and the sitemap has no blog", !(await call(null, "GET", "/sitemap.xml")).text.includes("/blog"));
+  const menu = (text) => [...text.matchAll(/<nav aria-label="Primary"[\s\S]*?<\/nav>/g)].flatMap((m) => [...m[0].matchAll(/href="([^"]+)"/g)].map((h) => h[1]));
+  const homeMenu = menu((await call(null, "GET", "/")).text);
+  check(
+    "the menu reads Home, Services, Providers, Insurance, Self Pay, Contact — no Blog yet",
+    homeMenu.join(" ") === "/ /services /about /insurance /self-pay /contact",
+    homeMenu.join(" "),
+  );
 
   // Writing
   const bad = await Promise.all([
@@ -136,6 +143,9 @@ export async function run({ call, check, db, admin, doctor }) {
   check("publish", published.status === 200 && article.live?.hash === article.hash);
   const list = await call(null, "GET", "/blog");
   check("/blog lists it", list.status === 200 && list.text.includes("early-signs-of-pregnancy"));
+  const withBlog = menu((await call(null, "GET", "/services")).text);
+  check("…and Blog appears in the menu, before Contact", withBlog.join(" ") === "/ /services /about /insurance /self-pay /blog /contact", withBlog.join(" "));
+  check("…and in the footer", (await call(null, "GET", "/contact")).text.split("<footer")[1]?.includes('href="/blog"'));
   const page = await call(null, "GET", "/blog/early-signs-of-pregnancy");
   check("the article page opens", page.status === 200 && page.text.includes("heavy bleeding"));
   check("…shows who reviewed it", page.text.replace(/<!-- -->/g, "").includes("Medically reviewed by"));

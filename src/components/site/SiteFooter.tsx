@@ -5,7 +5,8 @@ import PhoneLink from "@/components/analytics/PhoneLink";
 import { photos } from "@/lib/photos";
 import { getOfficeHours } from "@/lib/repo";
 import { hoursEmpty } from "@/lib/scheduling";
-import { navLinks, site } from "@/lib/site";
+import { hasLiveArticles } from "@/lib/articles-repo";
+import { navLinksFor, site } from "@/lib/site";
 import { getOffices } from "@/lib/site-content";
 import WeekHours from "./WeekHours";
 import Ico from "./Ico";
@@ -15,6 +16,7 @@ const HEADING = "text-[0.75rem] font-semibold uppercase tracking-[0.2em] text-pl
 const LINK = "focus-ring inline-flex py-1 text-[0.95rem] text-plum-soft transition hover:text-wine";
 
 export default async function SiteFooter() {
+  const navLinks = navLinksFor(await hasLiveArticles().catch(() => false));
   const hours = await getOfficeHours();
   return (
     <>

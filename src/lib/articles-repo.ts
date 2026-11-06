@@ -478,6 +478,13 @@ export async function listReviewedBy(providerId: string): Promise<ArticleSummary
 /* -------------------------------------------------------------- public -- */
 
 /** Published articles, newest first — only the approved, frozen copies. */
+/** True once at least one article is published — the menu shows Blog then. */
+export async function hasLiveArticles(): Promise<boolean> {
+  const db = await getDb();
+  const doc = await db.collection<ArticleDoc>("articles").findOne({ live: { $ne: null } }, { projection: { _id: 1 } });
+  return doc !== null;
+}
+
 export async function listLiveArticles(limit = 100): Promise<LiveArticle[]> {
   const db = await getDb();
   const docs = await db
