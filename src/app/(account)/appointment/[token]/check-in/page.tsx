@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  * only while the appointment is confirmed and still ahead.
  */
 export default async function CheckInPage({
-  params,
+  params,x
 }: {
   params: Promise<{ token: string }>;
 }) {
