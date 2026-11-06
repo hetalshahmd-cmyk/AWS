@@ -33,15 +33,16 @@ export const site = {
 export type NavLink = { href: string; label: string };
 
 /**
- * The top menu, left to right: what we do, who sees you, how to pay, then
- * Blog and Contact. Blog is only shown once an article is published.
+ * The top menu, left to right, in the order the practice chose (Nov 2026):
+ * Home, Providers, Services, Self Pay, Insurance, Blog, Contact. Blog is
+ * only shown once an article is published.
  */
 const allNavLinks: (NavLink & { needsArticles?: boolean })[] = [
   { href: "/", label: "Home" },
-  { href: "/services", label: "Services" },
   { href: "/about", label: "Providers" },
-  { href: "/insurance", label: "Insurance" },
+  { href: "/services", label: "Services" },
   { href: "/self-pay", label: "Self Pay" },
+  { href: "/insurance", label: "Insurance" },
   { href: "/blog", label: "Blog", needsArticles: true },
   { href: "/contact", label: "Contact" },
 ];

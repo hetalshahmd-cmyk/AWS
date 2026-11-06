@@ -43,8 +43,8 @@ export async function run({ call, check, db, admin, doctor }) {
   const menu = (text) => [...text.matchAll(/<nav aria-label="Primary"[\s\S]*?<\/nav>/g)].flatMap((m) => [...m[0].matchAll(/href="([^"]+)"/g)].map((h) => h[1]));
   const homeMenu = menu((await call(null, "GET", "/")).text);
   check(
-    "the menu reads Home, Services, Providers, Insurance, Self Pay, Contact — no Blog yet",
-    homeMenu.join(" ") === "/ /services /about /insurance /self-pay /contact",
+    "the menu reads Home, Providers, Services, Self Pay, Insurance, Contact — no Blog yet",
+    homeMenu.join(" ") === "/ /about /services /self-pay /insurance /contact",
     homeMenu.join(" "),
   );
 
@@ -144,7 +144,7 @@ export async function run({ call, check, db, admin, doctor }) {
   const list = await call(null, "GET", "/blog");
   check("/blog lists it", list.status === 200 && list.text.includes("early-signs-of-pregnancy"));
   const withBlog = menu((await call(null, "GET", "/services")).text);
-  check("…and Blog appears in the menu, before Contact", withBlog.join(" ") === "/ /services /about /insurance /self-pay /blog /contact", withBlog.join(" "));
+  check("…and Blog appears in the menu, before Contact", withBlog.join(" ") === "/ /about /services /self-pay /insurance /blog /contact", withBlog.join(" "));
   check("…and in the footer", (await call(null, "GET", "/contact")).text.split("<footer")[1]?.includes('href="/blog"'));
   const page = await call(null, "GET", "/blog/early-signs-of-pregnancy");
   check("the article page opens", page.status === 200 && page.text.includes("heavy bleeding"));
