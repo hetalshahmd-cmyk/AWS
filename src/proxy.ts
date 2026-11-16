@@ -15,22 +15,28 @@ const NINETY_DAYS = 60 * 60 * 24 * 90;
 
 /**
  * Content-Security-Policy with a fresh nonce per page view. Only scripts that
- * carry the nonce (Next's own, and the Meta pixel snippet) run; anything
- * injected into a page does not. 'strict-dynamic' lets those trusted scripts
- * load what they need (the pixel loads connect.facebook.net). Inline style
+ * carry the nonce (Next's own, the Meta pixel snippet and the Google tag) run;
+ * anything injected into a page does not. 'strict-dynamic' lets those trusted
+ * scripts load what they need (connect.facebook.net, googletagmanager.com).
+ * The Google hosts below are the ones Google lists for Analytics + Ads. Inline style
  * attributes are allowed — a nonce can't cover them, and they can't run code.
  * Nonces need every page rendered per request (see app/layout.tsx).
  */
+const GOOGLE_IMG =
+  "https://*.google-analytics.com https://*.googletagmanager.com https://*.g.doubleclick.net https://*.google.com";
+const GOOGLE_CONNECT = `${GOOGLE_IMG} https://*.analytics.google.com https://pagead2.googlesyndication.com`;
+
 function contentSecurityPolicy(nonce: string): string {
   const dev = process.env.NODE_ENV === "development";
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' blob: data: https://www.facebook.com",
+    `img-src 'self' blob: data: https://www.facebook.com ${GOOGLE_IMG}`,
     "font-src 'self'",
-    `connect-src 'self' https://www.facebook.com https://connect.facebook.net${dev ? " ws: wss:" : ""}`,
-    "frame-src 'none'",
+    `connect-src 'self' https://www.facebook.com https://connect.facebook.net ${GOOGLE_CONNECT}${dev ? " ws: wss:" : ""}`,
+    // Google Ads measures conversions through this one frame.
+    "frame-src https://td.doubleclick.net https://www.googletagmanager.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

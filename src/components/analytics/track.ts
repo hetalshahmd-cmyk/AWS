@@ -1,7 +1,10 @@
 "use client";
 
+import { reportBookingConversion } from "./google";
+
 /**
- * Thin wrapper over the Meta pixel.
+ * Thin wrapper over the Meta pixel (and, for a confirmed booking, the Google
+ * Ads conversion).
  *
  * Every call is a no-op unless the script actually loaded, which only happens
  * after the visitor accepts advertising cookies — so callers never have to
@@ -47,6 +50,7 @@ export function isPrivateLocation(pathname: string, search = ""): boolean {
 export function track(name: ClientEventName, eventId?: string): void {
   if (typeof window === "undefined") return;
   if (isPrivateLocation(window.location.pathname, window.location.search)) return;
+  if (name === "Schedule") reportBookingConversion(eventId);
   const fbq = window.fbq;
   if (typeof fbq !== "function") return;
   try {

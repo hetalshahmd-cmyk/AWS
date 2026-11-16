@@ -35,8 +35,12 @@ const GRAPH_VERSION = process.env.META_GRAPH_VERSION || "v21.0";
 /** Set while testing so events land in Events Manager > Test Events. MUST be unset before launch. */
 const TEST_EVENT_CODE = process.env.META_TEST_EVENT_CODE ?? "";
 
-/** Consent cookie, written by the banner in components/analytics. */
-export const CONSENT_COOKIE = "awsp_consent";
+/**
+ * Consent cookie, written by the banner in components/analytics. "2" since
+ * Google was added to the question (Nov 2026): an earlier "Allow" covered
+ * Facebook only, so everyone is asked again.
+ */
+export const CONSENT_COOKIE = "awsp_consent2";
 /** First-party copy of the ad click id, written by middleware. */
 export const CLICK_COOKIE = "awsp_fbclid";
 

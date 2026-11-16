@@ -4,6 +4,8 @@
  */
 import { cleanPhone, phoneCountries, phoneHref } from "@/lib/phone";
 import { selfPayLine } from "@/lib/site";
+import { googleTagAllowedOn, reportBookingConversion } from "@/components/analytics/google";
+import { isPrivateLocation } from "@/components/analytics/track";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { safeNext } from "@/components/auth/safe-next";
@@ -165,6 +167,32 @@ describe("insurance picker", () => {
     assert.deepEqual(plansFor("Velocity"), ["Auto", "PPO", "Workers Comp"]);
     assert.equal(acceptedNetworks.length, 11);
     assert.equal(new Set(carriers.map((carrier) => carrier.name)).size, carriers.length, "no carrier twice");
+  });
+});
+
+describe("Google tag", () => {
+  it("runs only on the live site, never on localhost or a preview", () => {
+    assert.ok(googleTagAllowedOn("arizonawomenspecialists.com"));
+    assert.ok(googleTagAllowedOn("www.arizonawomenspecialists.com"));
+    for (const host of ["localhost", "127.0.0.1", "aws-git-main-x.vercel.app", "arizonawomenspecialists.com.evil.example"]) {
+      assert.ok(!googleTagAllowedOn(host), host);
+    }
+  });
+  it("reports a confirmed booking with the Ads label and an id — nothing else", () => {
+    const calls: unknown[][] = [];
+    const g = globalThis as unknown as { window?: unknown };
+    g.window = { gtag: (...args: unknown[]) => calls.push(args) };
+    try {
+      reportBookingConversion("evt-1");
+    } finally {
+      delete g.window;
+    }
+    assert.deepEqual(calls, [["event", "conversion", { send_to: "AW-16664261388/3HK4CJvF9NwcEIzmkYo-", transaction_id: "evt-1" }]]);
+  });
+  it("treats patient pages as private (the tag never sees them)", () => {
+    for (const path of ["/appointment/abc", "/my-bookings", "/admin/bookings", "/blog/some-article"]) assert.ok(isPrivateLocation(path), path);
+    assert.ok(isPrivateLocation("/login", "?next=%2Fappointment%2Fabc"));
+    for (const path of ["/", "/services", "/book", "/insurance"]) assert.ok(!isPrivateLocation(path), path);
   });
 });
 

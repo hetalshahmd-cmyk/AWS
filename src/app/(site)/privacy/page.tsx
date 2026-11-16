@@ -15,11 +15,12 @@ export const metadata: Metadata = {
 
 /**
  * Plain-language privacy notice. Two things make this page load-bearing rather
- * than boilerplate: it is the notice we owe visitors for the Meta pixel, and
+ * than boilerplate: it is the notice we owe visitors for the Meta pixel and the
+ * Google tag, and
  * it is the page the footer link points at. Keep both true if either changes.
  */
 
-const UPDATED = "October 5, 2026";
+const UPDATED = "November 16, 2026";
 
 /** Section titles, in order — they drive both the headings and the contents list. */
 const SECTIONS = [
@@ -28,7 +29,7 @@ const SECTIONS = [
   "What we collect",
   "How we use it",
   "Cookies and similar technologies",
-  "What we send to Meta — and what we never send",
+  "What we send to Meta and Google — and what we never send",
   "Your choices",
   "Your medical records",
   "How long we keep things",
@@ -120,7 +121,8 @@ export default async function PrivacyPage() {
             do not sell your information.{" "}
             <strong className="text-plum">
               We never send your health information — including your reason for visit, date of
-              birth, sex, or insurance — to Facebook, Instagram, or any other advertising company.
+              birth, sex, or insurance — to Facebook, Instagram, Google, or any other advertising
+              company.
             </strong>{" "}
             Advertising cookies are off until you allow them; if you say no — or simply ignore the
             question — nothing is loaded and the site works exactly the same.
@@ -186,10 +188,12 @@ export default async function PrivacyPage() {
             Advertising cookies — only if you allow them
           </h3>
           <P>
-            We advertise our services on Facebook and Instagram. To understand whether those ads
-            actually help people find care, we use the{" "}
+            We advertise our services on Facebook, Instagram and Google. To understand whether those
+            ads actually help people find care, we use the{" "}
             <strong className="text-plum">Meta Pixel and Meta Conversions API</strong>, provided by
-            Meta Platforms, Inc.
+            Meta Platforms, Inc., and the{" "}
+            <strong className="text-plum">Google tag (Google Analytics and Google Ads conversion tracking)</strong>,
+            provided by Google LLC.
           </P>
           <P>These place or read the following cookies:</P>
           <List
@@ -207,13 +211,21 @@ export default async function PrivacyPage() {
                 our own cookie, holding the click identifier from an ad link so it is not lost while
                 you browse. It is never shared with Meta if you have opted out.
               </>,
+              <>
+                <code className="rounded bg-shell px-1.5 py-0.5 text-[0.9em]">_ga</code> and <code className="rounded bg-shell px-1.5 py-0.5 text-[0.9em]">_ga_*</code> — set by Google Analytics to count visits
+                to our public pages.
+              </>,
+              <>
+                <code className="rounded bg-shell px-1.5 py-0.5 text-[0.9em]">_gcl_au</code> and <code className="rounded bg-shell px-1.5 py-0.5 text-[0.9em]">_gcl_aw</code> — set by Google Ads to record that
+                you arrived from a Google ad, so a booking can be credited to it.
+              </>,
             ]}
           />
           <P>
             <strong className="text-plum">These are off until you allow them.</strong> A notice at
             the bottom of the page asks on your first visit. Until you choose &ldquo;Allow&rdquo;,
-            the Meta script is not loaded, no advertising cookie is set, and nothing is sent. Your
-            choice is remembered for six months.
+            neither the Meta nor the Google script is loaded, no advertising cookie is set, and
+            nothing is sent. Your choice is remembered for six months.
           </P>
           <P>
             If your browser sends a Global Privacy Control or Do Not Track signal, we treat that as
@@ -230,14 +242,21 @@ export default async function PrivacyPage() {
             are stored by us and used by our office for your appointment.
           </P>
 
-          <H>What we send to Meta — and what we never send</H>
+          <H>What we send to Meta and Google — and what we never send</H>
           <P>
             Only if you have allowed it, we tell Meta that an anonymous visitor viewed a page, tapped
-            our phone number, chose to book, created an account, or completed a booking. That is
-            the whole picture. Meta is told that a booking happened — never what it is for, with
-            whom, or when.
+            our phone number, chose to book, created an account, or completed a booking. Google
+            Analytics counts visits to our public pages, and Google Ads is told when a booking is
+            completed. That is the whole picture. They are told that a booking happened — never
+            what it is for, with whom, or when.
           </P>
-          <P className="font-semibold">We never send Meta:</P>
+          <P>
+            Neither is used on pages about you: your appointment links, My bookings, check-in, the
+            staff area or our health articles never load these tools. We have switched off Google
+            signals and ad personalisation, so your visit is not used to build advertising
+            audiences.
+          </P>
+          <P className="font-semibold">We never send Meta or Google:</P>
           <List
             items={[
               "Your name, email address or phone number.",
@@ -253,9 +272,9 @@ export default async function PrivacyPage() {
             event we send.
           </P>
           <P>
-            Meta is not a business associate of this practice and has not signed a business
-            associate agreement. That is precisely why no protected health information is ever
-            shared with them. You can read{" "}
+            Neither Meta nor Google is a business associate of this practice, and neither has signed
+            a business associate agreement. That is precisely why no protected health information is
+            ever shared with them. You can read{" "}
             <a
               href="https://www.facebook.com/privacy/policy"
               target="_blank"
@@ -263,6 +282,15 @@ export default async function PrivacyPage() {
               className="font-semibold text-wine link-underline"
             >
               Meta&apos;s own privacy policy
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://policies.google.com/privacy"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-wine link-underline"
+            >
+              Google&apos;s privacy policy
             </a>{" "}
             for how they handle the data they do receive.
           </P>

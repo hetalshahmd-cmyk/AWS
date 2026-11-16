@@ -110,6 +110,12 @@ export async function run({ call, check, db, mailDir, admin, doctor, root }) {
   check("CSP nonce is on the page's scripts", Boolean(nonce) && home.text.includes(`nonce="${nonce}"`));
   const again = (await call(null, "GET", "/")).headers.get("content-security-policy") ?? "";
   check("a fresh nonce for every page view", again.match(/'nonce-([^']+)'/)?.[1] !== nonce);
+  check(
+    "CSP lets the Google tag measure (Analytics + Ads) and frames only Google's conversion frame",
+    /connect-src[^;]*https:\/\/\*\.google-analytics\.com/.test(csp) && /img-src[^;]*https:\/\/\*\.googletagmanager\.com/.test(csp) && /frame-src https:\/\/td\.doubleclick\.net https:\/\/www\.googletagmanager\.com;/.test(csp),
+  );
+  const privacy = (await call(null, "GET", "/privacy")).text;
+  check("the privacy policy names Google and its cookies", privacy.includes("Google Ads conversion tracking") && privacy.includes("_gcl_aw") && privacy.includes("We never send Meta or Google"));
   check("no X-Powered-By", !home.headers.get("x-powered-by"));
   check("robots.txt keeps private paths out", /Disallow: \/admin/.test((await call(null, "GET", "/robots.txt")).text));
   check("health refuses SESSION_SECRET", (await call(null, "GET", "/api/admin/health", undefined, { "x-health-key": process.env.SESSION_SECRET })).status === 401);

@@ -3,19 +3,21 @@
 import Link from "next/link";
 import Script from "next/script";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { GOOGLE_TAG_ID, googleTagAllowedOn, initGoogleTag } from "./google";
 import { isPrivateLocation } from "./track";
 
 // Vercel exposes the deployment kind to the browser; previews get no pixel.
 const PREVIEW = ["preview", "development"].includes(process.env.NEXT_PUBLIC_VERCEL_ENV ?? "");
 const PIXEL_ID = PREVIEW ? "" : (process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "");
-const CONSENT_COOKIE = "awsp_consent";
+// Must match CONSENT_COOKIE in lib/meta.ts. "2": the question now names Google too.
+const CONSENT_COOKIE = "awsp_consent2";
 const SIX_MONTHS = 60 * 60 * 24 * 182;
 
 type Consent = "granted" | "denied";
 
 function readConsent(): Consent | null {
-  const match = document.cookie.match(/(?:^|;\s*)awsp_consent=(granted|denied)/);
+  const match = document.cookie.match(/(?:^|;\s*)awsp_consent2=(granted|denied)/);
   return (match?.[1] as Consent | undefined) ?? null;
 }
 
@@ -122,7 +124,74 @@ fbq('track','PageView');`}
 }
 
 /**
- * Asks first. Nothing from Meta loads until "Allow" — on an OB-GYN site even
+ * A page that is about one patient must never be reached by a client-side
+ * navigation while the Google tag is on the page: Google Analytics records
+ * every history change with its full address on its own (a setting we can't
+ * switch off from here), and an appointment address is a private link. So
+ * those navigations — links, redirects and the Back button — become full page
+ * loads, and a page that starts out private never loads the tag at all.
+ */
+function privateTarget(url: string | URL | null | undefined): URL | null {
+  if (url === null || url === undefined) return null;
+  try {
+    const target = new URL(String(url), window.location.href);
+    if (target.origin !== window.location.origin) return null;
+    return isPrivateLocation(target.pathname, target.search) ? target : null;
+  } catch {
+    return null;
+  }
+}
+
+function guardPrivatePages(): () => void {
+  const { pushState, replaceState } = window.history;
+  const wrap = (original: History["pushState"]): History["pushState"] =>
+    function guarded(this: History, data, unused, url) {
+      const target = privateTarget(url);
+      if (target && target.href !== window.location.href) {
+        window.location.assign(target.href);
+        return;
+      }
+      return original.call(this, data, unused, url);
+    };
+  window.history.pushState = wrap(pushState);
+  window.history.replaceState = wrap(replaceState);
+  // Added before gtag.js loads, so it runs first and can stop the others.
+  const onPop = (event: PopStateEvent) => {
+    if (!isPrivateLocation(window.location.pathname, window.location.search)) return;
+    event.stopImmediatePropagation();
+    window.location.reload();
+  };
+  window.addEventListener("popstate", onPop);
+  return () => {
+    window.history.pushState = pushState;
+    window.history.replaceState = replaceState;
+    window.removeEventListener("popstate", onPop);
+  };
+}
+
+/**
+ * Google tag: Google Analytics plus the Google Ads booking conversion. Mounted
+ * only after "Allow", like the pixel, and only on the live site.
+ */
+function GoogleTag({ nonce }: { nonce?: string }) {
+  // Before the script element is added (passive effects run after this), so
+  // the guard and the gtag queue are in place by the time gtag.js runs.
+  useLayoutEffect(() => {
+    initGoogleTag();
+    return guardPrivatePages();
+  }, []);
+  return (
+    <Script
+      id="google-tag"
+      src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_TAG_ID}`}
+      strategy="afterInteractive"
+      nonce={nonce}
+    />
+  );
+}
+
+/**
+ * Asks first. Nothing from Meta or Google loads until "Allow" — on an OB-GYN site even
  * "this browser booked" is health data under laws such as Washington's My
  * Health My Data Act, which require consent before it is collected. Both
  * buttons write the same cookie, so the question does not come back.
@@ -136,8 +205,8 @@ function TrackingNotice({ onChoose }: { onChoose: (value: Consent) => void }) {
     >
       <div className="mx-auto flex max-w-[1120px] flex-col gap-4 px-[clamp(15px,4vw,40px)] py-4 min-[860px]:flex-row min-[860px]:items-center min-[860px]:justify-between">
         <p className="max-w-[70ch] text-[0.95rem] text-plum-soft">
-          May we use cookies from Facebook to see whether our ads help people find care? Nothing is
-          loaded unless you allow it.{" "}
+          May we use cookies from Facebook and Google to see whether our ads help people find care?
+          Nothing is loaded unless you allow it.{" "}
           <strong className="text-plum">
             We never share your health information, your reason for visit, or your details.
           </strong>{" "}
@@ -168,9 +237,9 @@ function TrackingNotice({ onChoose }: { onChoose: (value: Consent) => void }) {
 }
 
 /**
- * Nothing here renders until NEXT_PUBLIC_META_PIXEL_ID is set, so an
- * unconfigured environment — local dev, CI, or the site before launch —
- * behaves exactly as it did before any of this existed.
+ * Nothing here renders until NEXT_PUBLIC_META_PIXEL_ID is set or the page is
+ * on the live domain (the Google tag), so local dev, CI and previews behave
+ * exactly as they did before any of this existed.
  */
 export default function Analytics({ nonce }: { nonce?: string }) {
   const consent = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
@@ -185,14 +254,16 @@ export default function Analytics({ nonce }: { nonce?: string }) {
     typeof window !== "undefined" && isPrivateLocation(pathname, window.location.search);
   if (!publicSeen && consent !== "unread" && !privateNow) setPublicSeen(true);
 
-  if (!PIXEL_ID || consent === "unread") return null;
+  const google = typeof window !== "undefined" && !PREVIEW && googleTagAllowedOn(window.location.hostname);
+  if ((!PIXEL_ID && !google) || consent === "unread") return null;
 
-  // Opt-in: the pixel loads only after "Allow". Ignoring the question counts
-  // as no — patients in states with consumer-health-data laws (and the
-  // practice, as a HIPAA covered entity) need consent first.
+  // Opt-in: the pixel and the Google tag load only after "Allow". Ignoring
+  // the question counts as no — patients in states with consumer-health-data
+  // laws (and the practice, as a HIPAA covered entity) need consent first.
   return (
     <>
-      {consent === "granted" && publicSeen && <MetaPixel nonce={nonce} />}
+      {consent === "granted" && publicSeen && PIXEL_ID && <MetaPixel nonce={nonce} />}
+      {consent === "granted" && publicSeen && google && <GoogleTag nonce={nonce} />}
       {consent === null && <TrackingNotice onChoose={choose} />}
     </>
   );
