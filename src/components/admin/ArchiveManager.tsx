@@ -74,14 +74,27 @@ export default function ArchiveManager({ bookings: initialBookings, patients: in
         setError(data.error ?? "That didn't work — please try again");
         return;
       }
-      const gone = new Set(chosen);
-      if (kind === "bookings") setBookings((list) => list.filter((row) => !gone.has(row.id)));
-      else setPatients((list) => list.filter((row) => !gone.has(row.id)));
+      // Reload both tabs: restoring a patient brings their bookings back too.
+      const fresh = await fetch("/api/admin/archive").then((r) => (r.ok ? r.json() : null)).catch(() => null);
+      if (fresh) {
+        setBookings(fresh.bookings);
+        setPatients(fresh.patients);
+      }
       setSelected(new Set());
       setConfirming(false);
-      const n = data.count ?? chosen.length;
+      const n = data.count ?? 0;
       const what = kind === "bookings" ? (n === 1 ? "booking" : "bookings") : n === 1 ? "patient" : "patients";
-      setOk(action === "restore" ? `Restored ${n} ${what}.` : `Deleted ${n} ${what} permanently. Dashboard numbers are unchanged.`);
+      if (action === "delete") {
+        setOk(`Deleted ${n} ${what} permanently. The dashboard's booking counts are unchanged.`);
+      } else {
+        const left = kind === "bookings" ? (data.skipped?.length ?? 0) : (data.skippedBookings ?? 0);
+        setOk(
+          `Restored ${n} ${what}.` +
+            (left
+              ? ` ${left} booking${left === 1 ? "" : "s"} stayed in the Archive — that time has been booked by someone else.`
+              : ""),
+        );
+      }
     } catch {
       setError("Could not reach the server");
     } finally {
@@ -251,7 +264,7 @@ export default function ArchiveManager({ bookings: initialBookings, patients: in
                   ? "The patient's details, check-in answers and photos, and emails sent about these bookings are erased."
                   : "Their account, every booking's patient details, check-in photos, emails and chats are erased."}
               </p>
-              <p className="font-semibold text-plum">Dashboard numbers stay the same.</p>
+              <p className="font-semibold text-plum">The dashboard&apos;s booking counts stay the same.</p>
               <p>This can&apos;t be undone.</p>
             </div>
             <Notice tone="error">{error}</Notice>

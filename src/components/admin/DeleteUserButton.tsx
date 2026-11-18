@@ -54,9 +54,9 @@ export default function DeleteUserButton({
       <p className="text-[15px] font-semibold text-wine-deep">Delete {name}?</p>
       <p className="mt-1 text-[14px] text-plum">
         The account
-        {bookings > 0 ? ` and its ${bookings} booking${bookings === 1 ? "" : "s"}` : ""} move to Admin → Archive.
-        They can&apos;t sign in from now on. Restore them or delete them permanently from the Archive; the
-        dashboard numbers stay the same.
+        {bookings > 0 ? ` and its ${bookings} booking${bookings === 1 ? "" : "s"}` : ""} move to Admin → Archive,
+        freeing any times still held. They can&apos;t sign in from now on. Restore them or delete them
+        permanently from the Archive; the dashboard still counts their bookings.
       </p>
       <div className="mt-3 flex gap-2">
         <button type="button" disabled={busy} onClick={remove} className={BTN_DANGER}>

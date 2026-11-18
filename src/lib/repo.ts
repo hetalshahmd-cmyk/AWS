@@ -761,13 +761,14 @@ export async function getUserDetail(
 /**
  * "Delete patient": the account and its bookings move to Admin → Archive.
  * They can't sign in any more (their sessions end now), they leave every list,
- * and nothing is erased yet — the dashboard keeps counting their visits.
- * Restore or delete for good from the Archive.
+ * the times they held become free again, and nothing is erased yet — the
+ * dashboard keeps counting their visits. Restore or delete for good from the
+ * Archive.
  */
 export async function archiveUserAccount(
   id: string,
   by: string,
-): Promise<{ email: string; archivedBookings: number } | null> {
+): Promise<{ email: string; archivedBookings: number; freedSlots: number } | null> {
   const { users, bookings } = await collections();
   if (!ObjectId.isValid(id)) return null;
   const user = await users.findOneAndUpdate(
@@ -776,11 +777,17 @@ export async function archiveUserAccount(
     { returnDocument: "after" },
   );
   if (!user) return null;
-  const moved = await bookings.updateMany(
-    { ...LIVE_BOOKING, $or: [{ userId: user._id }, { "patient.email": user.email }] },
-    { $set: { archivedAt: new Date(), archivedBy: by, archivedWithUser: user._id } },
-  );
-  return { email: user.email, archivedBookings: moved.modifiedCount };
+  const owned = await bookings
+    .find({ ...LIVE_BOOKING, $or: [{ userId: user._id }, { "patient.email": user.email }] }, { projection: { _id: 1 } })
+    .toArray();
+  let archivedBookings = 0;
+  let freedSlots = 0;
+  for (const { _id } of owned) {
+    const result = await archiveBookingDoc(_id, by, user._id);
+    if (result.archived) archivedBookings += 1;
+    if (result.freed) freedSlots += 1;
+  }
+  return { email: user.email, archivedBookings, freedSlots };
 }
 
 /** A patient renames themselves in their panel. Returns the updated account. */
@@ -835,8 +842,8 @@ export async function getUserById(id: string): Promise<User | null> {
 /**
  * Bookings in use: not in Admin → Archive and not deleted for good. Every
  * list, the patient's own pages, reminders and changes go through this; the
- * dashboard deliberately does not, so its numbers never move when a booking
- * is deleted.
+ * dashboard deliberately does not, so its booking counts never move when a
+ * booking is deleted. (Deleting does free the seat, as it always has.)
  */
 const LIVE_BOOKING: Filter<BookingDoc> = { archivedAt: null, purgedAt: null };
 const ARCHIVED_BOOKING: Filter<BookingDoc> = { archivedAt: { $ne: null }, purgedAt: null };
@@ -1206,8 +1213,8 @@ export async function listSlotBookings(
   const { bookings } = await collections();
   const docs = await bookings
     .find(
-      { status: "confirmed", date: { $gte: from, $lte: to } },
-      { projection: { slotId: 1, patient: 1, intake: 1, patientType: 1, archivedAt: 1, purgedAt: 1 } },
+      { ...LIVE_BOOKING, status: "confirmed", date: { $gte: from, $lte: to } },
+      { projection: { slotId: 1, patient: 1, intake: 1, patientType: 1 } },
     )
     .toArray();
   const map: Record<string, SlotBooking[]> = {};
@@ -1215,10 +1222,7 @@ export async function listSlotBookings(
     const key = doc.slotId.toString();
     (map[key] ??= []).push({
       id: doc._id.toString(),
-      // Archived and deleted bookings still hold their seat, so they're listed.
-      name: doc.purgedAt
-        ? "Deleted record"
-        : `${doc.patient.firstName} ${doc.patient.lastName}${doc.archivedAt ? " (archived)" : ""}`,
+      name: `${doc.patient.firstName} ${doc.patient.lastName}`,
       checkedIn: Boolean(doc.intake?.submittedAt),
       newPatient: doc.patientType === "new",
     });
@@ -1644,7 +1648,7 @@ export async function saveWeekSchedule(
 
   const holders = booked.length
     ? await bookings
-        .find({ slotId: { $in: booked.map((slot) => slot._id) }, status: "confirmed" })
+        .find({ ...LIVE_BOOKING, slotId: { $in: booked.map((slot) => slot._id) }, status: "confirmed" })
         .toArray()
     : [];
   const keptBooked = booked
@@ -2150,18 +2154,58 @@ export async function setBookingStatus(
 /* ------------------------------------------------------------- archive -- */
 
 /**
- * "Delete booking": it moves to Admin → Archive. The appointment itself is
- * untouched (cancel it first to free the time), it leaves every list and the
- * patient's pages, and the dashboard keeps counting it.
+ * Archives one booking. A confirmed one gives its seat back, exactly as a
+ * delete always did, so someone else can book that time. Only the request
+ * that actually archives it frees the seat.
+ */
+async function archiveBookingDoc(
+  _id: ObjectId,
+  by: string,
+  withUser: ObjectId | null = null,
+): Promise<{ archived: boolean; freed: boolean }> {
+  const { bookings, slots } = await collections();
+  const doc = await bookings.findOneAndUpdate(
+    { _id, ...LIVE_BOOKING },
+    { $set: { archivedAt: new Date(), archivedBy: by, archivedWithUser: withUser } },
+  );
+  if (!doc) return { archived: false, freed: false };
+  if (doc.status !== "confirmed") return { archived: true, freed: false };
+  await slots.updateOne({ _id: doc.slotId }, { $inc: { booked: -1 } });
+  return { archived: true, freed: true };
+}
+
+/**
+ * "Delete booking": it moves to Admin → Archive. Its time becomes free for
+ * others, it leaves every list and the patient's pages, and the dashboard
+ * keeps counting it as a booking that was made.
  */
 export async function archiveBooking(id: string, by: string): Promise<boolean> {
-  const { bookings } = await collections();
   if (!ObjectId.isValid(id)) return false;
-  const result = await bookings.updateOne(
-    { _id: new ObjectId(id), ...LIVE_BOOKING },
-    { $set: { archivedAt: new Date(), archivedBy: by } },
+  return (await archiveBookingDoc(new ObjectId(id), by)).archived;
+}
+
+/**
+ * Back from the Archive. A confirmed booking needs its seat again: if someone
+ * else has booked that time since, it stays in the Archive.
+ */
+async function restoreBookingDoc(doc: BookingDoc): Promise<boolean> {
+  const { bookings, slots } = await collections();
+  if (doc.status === "confirmed") {
+    const seat = await slots.findOneAndUpdate(
+      { _id: doc.slotId, $expr: { $lt: ["$booked", "$capacity"] } },
+      { $inc: { booked: 1 } },
+    );
+    if (!seat) return false;
+  }
+  const done = await bookings.updateOne(
+    { _id: doc._id, ...ARCHIVED_BOOKING },
+    { $set: { archivedAt: null, archivedBy: null, archivedWithUser: null } },
   );
-  return result.modifiedCount === 1;
+  if (done.modifiedCount !== 1 && doc.status === "confirmed") {
+    // Restored or deleted meanwhile by someone else — give the seat back.
+    await slots.updateOne({ _id: doc.slotId }, { $inc: { booked: -1 } });
+  }
+  return done.modifiedCount === 1;
 }
 
 export type ArchivedPatient = {
@@ -2197,14 +2241,14 @@ export async function listArchive(): Promise<{ bookings: Booking[]; patients: Ar
 
 const objectIds = (ids: string[]) => ids.filter((id) => ObjectId.isValid(id)).map((id) => new ObjectId(id));
 
-/** Back from the Archive into the lists, exactly as they were. */
-export async function restoreBookings(ids: string[]): Promise<number> {
+/** Back into the lists. `skipped`: their time was booked by someone else meanwhile. */
+export async function restoreBookings(ids: string[]): Promise<{ restored: string[]; skipped: string[] }> {
   const { bookings } = await collections();
-  const result = await bookings.updateMany(
-    { _id: { $in: objectIds(ids) }, ...ARCHIVED_BOOKING },
-    { $set: { archivedAt: null, archivedBy: null, archivedWithUser: null } },
-  );
-  return result.modifiedCount;
+  const docs = await bookings.find({ _id: { $in: objectIds(ids) }, ...ARCHIVED_BOOKING }).toArray();
+  const restored: string[] = [];
+  const skipped: string[] = [];
+  for (const doc of docs) (await restoreBookingDoc(doc) ? restored : skipped).push(doc._id.toString());
+  return { restored, skipped };
 }
 
 /**
@@ -2216,7 +2260,12 @@ export async function restoreBookings(ids: string[]): Promise<number> {
  * don't change. The record then no longer appears anywhere but those counts.
  */
 async function purgeBookingDoc(doc: BookingDoc): Promise<void> {
-  const { bookings } = await collections();
+  const { bookings, slots } = await collections();
+  // Archived bookings gave their seat back already; a live one (a patient's
+  // booking restored on its own) gives it back now.
+  if (!doc.archivedAt && doc.status === "confirmed") {
+    await slots.updateOne({ _id: doc.slotId }, { $inc: { booked: -1 } });
+  }
   const photos = [doc.intake?.cardFrontId, doc.intake?.cardBackId, doc.intake?.photoIdId];
   await Promise.all(photos.map((photoId) => deletePhoto(photoId ?? null)));
   const db = await getDb();
@@ -2245,19 +2294,23 @@ export async function purgeBookings(ids: string[]): Promise<number> {
   return docs.length;
 }
 
-/** Patients back from the Archive, with the bookings archived alongside them. */
-export async function restoreUsers(ids: string[]): Promise<number> {
+/**
+ * Patients back from the Archive, with the bookings archived alongside them.
+ * A booking whose time was taken meanwhile stays in the Archive (skipped).
+ */
+export async function restoreUsers(ids: string[]): Promise<{ restored: string[]; skippedBookings: number }> {
   const { users, bookings } = await collections();
-  const _ids = objectIds(ids);
-  const result = await users.updateMany(
-    { _id: { $in: _ids }, archivedAt: { $ne: null } },
-    { $set: { archivedAt: null, archivedBy: null } },
-  );
-  await bookings.updateMany(
-    { archivedWithUser: { $in: _ids }, ...ARCHIVED_BOOKING },
-    { $set: { archivedAt: null, archivedBy: null, archivedWithUser: null } },
-  );
-  return result.modifiedCount;
+  const docs = await users.find({ _id: { $in: objectIds(ids) }, archivedAt: { $ne: null } }).toArray();
+  const restored: string[] = [];
+  let skippedBookings = 0;
+  for (const user of docs) {
+    const done = await users.updateOne({ _id: user._id, archivedAt: { $ne: null } }, { $set: { archivedAt: null, archivedBy: null } });
+    if (done.modifiedCount !== 1) continue;
+    restored.push(user._id.toString());
+    const theirs = await bookings.find({ archivedWithUser: user._id, ...ARCHIVED_BOOKING }).toArray();
+    for (const booking of theirs) if (!(await restoreBookingDoc(booking))) skippedBookings += 1;
+  }
+  return { restored, skippedBookings };
 }
 
 /**

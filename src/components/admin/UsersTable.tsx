@@ -37,7 +37,8 @@ export default function UsersTable({ initial }: { initial: UserRow[] }) {
       setNotice(
         `Moved ${user.name} to the Archive` +
           (data.archivedBookings
-            ? ` with ${data.archivedBookings} booking${data.archivedBookings === 1 ? "" : "s"}.`
+            ? ` with ${data.archivedBookings} booking${data.archivedBookings === 1 ? "" : "s"}` +
+              (data.freedSlots ? `, ${data.freedSlots} slot(s) freed.` : ".")
             : ".") +
           " Restore or delete permanently from Admin → Archive.",
       );

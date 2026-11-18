@@ -14,8 +14,9 @@ export default async function ArchivePage() {
     <div>
       <h1 className="font-display text-[2rem] font-semibold leading-tight">Archive</h1>
       <p className="mt-1 max-w-[70ch] text-[15px] text-plum-soft">
-        Deleted bookings and patients wait here. Restore them, or tick some and delete them permanently.
-        Either way the dashboard numbers stay the same.
+        Deleted bookings and patients wait here; their times were freed for others when they were deleted.
+        Restore them (if the time is still free), or tick some and delete them permanently. The dashboard&apos;s
+        booking counts stay the same either way.
       </p>
       <ArchiveManager bookings={bookings} patients={patients} />
     </div>

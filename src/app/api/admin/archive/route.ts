@@ -10,7 +10,8 @@ export const GET = adminRoute(async () => NextResponse.json(await listArchive())
 
 /**
  * { kind: "bookings" | "patients", action: "restore" | "delete", ids: [...] }.
- * "delete" erases for good; the dashboard's numbers stay the same either way.
+ * "delete" erases for good; the dashboard's booking counts stay the same
+ * either way. Restoring a booking takes its time back only if it's still free.
  */
 export const POST = adminRoute(async (request) => {
   const body = await readJson<{ kind?: unknown; action?: unknown; ids?: unknown }>(request);
@@ -18,13 +19,15 @@ export const POST = adminRoute(async (request) => {
   if (!ids.length) return NextResponse.json({ error: "Select at least one" }, { status: 400 });
 
   if (body.kind === "bookings" && body.action === "restore") {
-    return NextResponse.json({ ok: true, count: await restoreBookings(ids) });
+    const { restored, skipped } = await restoreBookings(ids);
+    return NextResponse.json({ ok: true, count: restored.length, restored, skipped });
   }
   if (body.kind === "bookings" && body.action === "delete") {
     return NextResponse.json({ ok: true, count: await purgeBookings(ids) });
   }
   if (body.kind === "patients" && body.action === "restore") {
-    return NextResponse.json({ ok: true, count: await restoreUsers(ids) });
+    const { restored, skippedBookings } = await restoreUsers(ids);
+    return NextResponse.json({ ok: true, count: restored.length, restored, skippedBookings });
   }
   if (body.kind === "patients" && body.action === "delete") {
     const removed = await purgeUsers(ids);

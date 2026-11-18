@@ -73,7 +73,7 @@ export default function BookingsTable({ initial }: { initial: Booking[] }) {
   async function remove(id: string) {
     if (
       !window.confirm(
-        "Delete this booking? It moves to Admin → Archive, where you can restore it or delete it permanently. It stays in the dashboard numbers. (To free the time for someone else, cancel it first.)",
+        "Delete this booking? Its time becomes free for others and it moves to Admin → Archive, where you can restore it or delete it permanently. The dashboard still counts it.",
       )
     ) {
       return;
