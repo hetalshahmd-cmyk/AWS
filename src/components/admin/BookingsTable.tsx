@@ -73,7 +73,7 @@ export default function BookingsTable({ initial }: { initial: Booking[] }) {
   async function remove(id: string) {
     if (
       !window.confirm(
-        "Delete this booking for good? Its check-in answers and photos are deleted too. This can't be undone.",
+        "Delete this booking? It moves to Admin → Archive, where you can restore it or delete it permanently. It stays in the dashboard numbers. (To free the time for someone else, cancel it first.)",
       )
     ) {
       return;

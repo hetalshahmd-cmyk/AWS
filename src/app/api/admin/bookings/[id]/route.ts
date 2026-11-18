@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminRoute, readJson, teamRoute } from "@/lib/api-helpers";
-import { deleteBooking, setBookingStatus, SlotUnavailableError } from "@/lib/repo";
+import { requireAdmin } from "@/lib/auth";
+import { archiveBooking, setBookingStatus, SlotUnavailableError } from "@/lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +31,11 @@ export const PATCH = teamRoute(async (request, ctx: Ctx) => {
   return NextResponse.json({ booking });
 });
 
+/** "Delete" moves the booking to Admin → Archive; it is erased only from there. */
 export const DELETE = adminRoute(async (_request, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const ok = await deleteBooking(id);
+  const admin = await requireAdmin();
+  const ok = await archiveBooking(id, admin.name || admin.email);
   if (!ok) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, archived: true });
 });

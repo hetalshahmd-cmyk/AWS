@@ -35,11 +35,11 @@ export default function UsersTable({ initial }: { initial: UserRow[] }) {
       setUsers((prev) => prev.filter((row) => row.id !== user.id));
       setConfirmId(null);
       setNotice(
-        `Deleted ${user.name}` +
-          (data.removedBookings
-            ? ` — ${data.removedBookings} booking${data.removedBookings === 1 ? "" : "s"} removed` +
-              (data.freedSlots ? `, ${data.freedSlots} slot(s) freed.` : ".")
-            : "."),
+        `Moved ${user.name} to the Archive` +
+          (data.archivedBookings
+            ? ` with ${data.archivedBookings} booking${data.archivedBookings === 1 ? "" : "s"}.`
+            : ".") +
+          " Restore or delete permanently from Admin → Archive.",
       );
     } catch {
       setError("Could not reach the server");

@@ -29,7 +29,7 @@ export default function DeleteUserButton({
         setError(data.error ?? "Could not delete this patient");
         return;
       }
-      router.push("/admin/users");
+      router.push("/admin/archive");
       router.refresh();
     } catch {
       setError("Could not reach the server");
@@ -53,11 +53,10 @@ export default function DeleteUserButton({
     <div className="rounded-xl border border-wine/30 bg-wine-soft p-4">
       <p className="text-[15px] font-semibold text-wine-deep">Delete {name}?</p>
       <p className="mt-1 text-[14px] text-plum">
-        This removes the account
-        {bookings > 0
-          ? ` and its ${bookings} booking${bookings === 1 ? "" : "s"}, freeing any seats still held`
-          : ""}
-        . It can&apos;t be undone.
+        The account
+        {bookings > 0 ? ` and its ${bookings} booking${bookings === 1 ? "" : "s"}` : ""} move to Admin → Archive.
+        They can&apos;t sign in from now on. Restore them or delete them permanently from the Archive; the
+        dashboard numbers stay the same.
       </p>
       <div className="mt-3 flex gap-2">
         <button type="button" disabled={busy} onClick={remove} className={BTN_DANGER}>

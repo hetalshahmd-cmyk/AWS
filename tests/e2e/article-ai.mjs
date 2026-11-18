@@ -66,7 +66,8 @@ export async function run({ call, check, db, admin, doctor, fakeAi }) {
       `${request.headers["x-api-key"] ?? ""} ${request.headers.authorization ?? ""}`.includes("e2e-fake-key"),
     JSON.stringify({ n: fakeAi.requests.length - asked, model: request?.body.model, format: request?.body.output_config?.format?.type, system: typeof request?.body.system }),
   );
-  const patients = await db.collection("bookings").find({}, { projection: { "patient.email": 1 } }).toArray();
+  // Bookings deleted for good (Admin → Archive) have no email left to leak.
+  const patients = await db.collection("bookings").find({ "patient.email": { $ne: "" } }, { projection: { "patient.email": 1 } }).toArray();
   check(
     "…sending no patient information",
     patients.length > 0 && patients.every((booking) => !request.raw.includes(booking.patient.email)),

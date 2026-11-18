@@ -402,3 +402,24 @@ async function notify(doc: ConversationDoc, to: ChatRole, now: Date): Promise<vo
   for (const email of recipients) await sendMail({ to: email, subject, text, html });
 }
 
+
+/**
+ * Erases every chat a patient had — messages, pictures and the conversations
+ * themselves. Used when an admin deletes the patient for good from the Archive.
+ */
+export async function deletePatientChats(userId: string): Promise<number> {
+  const id = objectId(userId);
+  if (!id) return 0;
+  const { conversations, messages, files } = await db();
+  const ids = (await conversations.find({ userId: id }, { projection: { _id: 1 } }).toArray()).map((doc) => doc._id);
+  if (!ids.length) return 0;
+  const pictures = await messages
+    .find({ conversationId: { $in: ids }, image: { $ne: null } }, { projection: { image: 1 } })
+    .toArray();
+  for (const message of pictures) {
+    if (message.image) await files.delete(message.image.fileId).catch(() => undefined);
+  }
+  await messages.deleteMany({ conversationId: { $in: ids } });
+  await conversations.deleteMany({ _id: { $in: ids } });
+  return ids.length;
+}

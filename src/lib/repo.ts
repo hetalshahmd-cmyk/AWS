@@ -626,8 +626,9 @@ export async function authenticateUser(email: string, password: string): Promise
   const { users } = await collections();
   const doc = await users.findOne({ email: email.trim().toLowerCase() });
 
-  // Hash anyway when the email is unknown, so both failures take the same time.
-  if (!doc) {
+  // Hash anyway when the email is unknown (or the account is archived), so
+  // every failure takes the same time.
+  if (!doc || doc.archivedAt) {
     await verifyPassword(password, DUMMY_HASH);
     return null;
   }
@@ -650,6 +651,8 @@ export async function authenticateUser(email: string, password: string): Promise
 /** A row for the admin patient list: the account plus its booking counts. */
 export type UserRow = User & {
   lastLoginAt: string | null;
+  /** Set when the patient is in Admin → Archive. */
+  archivedAt?: string | null;
   bookingsTotal: number;
   bookingsUpcoming: number;
   bookingsCancelled: number;
@@ -662,6 +665,8 @@ export async function listUserRows(): Promise<UserRow[]> {
 
   const rows = await users
     .aggregate<UserRow & { _id: ObjectId }>([
+      // Archived patients are listed in Admin → Archive instead.
+      { $match: { archivedAt: null } },
       {
         // Guest bookings share only the email, so match on either key.
         $lookup: {
@@ -670,6 +675,8 @@ export async function listUserRows(): Promise<UserRow[]> {
           pipeline: [
             {
               $match: {
+                archivedAt: null,
+                purgedAt: null,
                 $expr: {
                   $or: [{ $eq: ["$userId", "$$uid"] }, { $eq: ["$patient.email", "$$mail"] }],
                 },
@@ -731,13 +738,15 @@ export async function getUserDetail(
   const doc = await users.findOne({ _id: new ObjectId(id) });
   if (!doc) return null;
 
-  const bookings = await listUserBookings(id, doc.email);
+  // An archived patient's page shows the bookings archived with them.
+  const bookings = await listUserBookings(id, doc.email, Boolean(doc.archivedAt));
   const todayIso = toIso(new Date());
 
   return {
     user: {
       ...serializeUser(doc),
       lastLoginAt: doc.lastLoginAt?.toISOString() ?? null,
+      archivedAt: doc.archivedAt?.toISOString() ?? null,
       bookingsTotal: bookings.length,
       bookingsUpcoming: bookings.filter(
         (booking) => booking.status === "confirmed" && booking.date >= todayIso,
@@ -750,44 +759,28 @@ export async function getUserDetail(
 }
 
 /**
- * Removes a patient account together with its bookings, releasing any seat that
- * was still held. Returns what was removed so the UI can report it.
+ * "Delete patient": the account and its bookings move to Admin → Archive.
+ * They can't sign in any more (their sessions end now), they leave every list,
+ * and nothing is erased yet — the dashboard keeps counting their visits.
+ * Restore or delete for good from the Archive.
  */
-export async function deleteUserAccount(
+export async function archiveUserAccount(
   id: string,
-): Promise<{ email: string; removedBookings: number; freedSlots: number } | null> {
-  const { users, bookings, slots } = await collections();
+  by: string,
+): Promise<{ email: string; archivedBookings: number } | null> {
+  const { users, bookings } = await collections();
   if (!ObjectId.isValid(id)) return null;
-
-  const user = await users.findOne({ _id: new ObjectId(id) });
-  if (!user) return null;
-
-  const owned = await bookings
-    .find({ $or: [{ userId: user._id }, { "patient.email": user.email }] })
-    .toArray();
-
-  let freedSlots = 0;
-  for (const booking of owned) {
-    if (booking.status === "confirmed") {
-      await slots.updateOne({ _id: booking.slotId }, { $inc: { booked: -1 } });
-      freedSlots += 1;
-    }
-  }
-
-  await bookings.deleteMany({ _id: { $in: owned.map((booking) => booking._id) } });
-  await users.deleteOne({ _id: user._id });
-
-  // Check-in photos (insurance cards, photo ID) are health information too.
-  await Promise.all(
-    owned
-      .flatMap((booking) => [booking.intake?.cardFrontId, booking.intake?.cardBackId, booking.intake?.photoIdId])
-      .map((photoId) => deletePhoto(photoId ?? null)),
+  const user = await users.findOneAndUpdate(
+    { _id: new ObjectId(id), archivedAt: null },
+    { $set: { archivedAt: new Date(), archivedBy: by }, $inc: { sessionVersion: 1 } },
+    { returnDocument: "after" },
   );
-
-  const db = await getDb();
-  await db.collection("email_otps").deleteOne({ email: user.email });
-
-  return { email: user.email, removedBookings: owned.length, freedSlots };
+  if (!user) return null;
+  const moved = await bookings.updateMany(
+    { ...LIVE_BOOKING, $or: [{ userId: user._id }, { "patient.email": user.email }] },
+    { $set: { archivedAt: new Date(), archivedBy: by, archivedWithUser: user._id } },
+  );
+  return { email: user.email, archivedBookings: moved.modifiedCount };
 }
 
 /** A patient renames themselves in their panel. Returns the updated account. */
@@ -827,7 +820,7 @@ export async function sessionVersionOf(kind: "admin" | "user", id: string): Prom
   const { users, admins } = await collections();
   const doc =
     kind === "user"
-      ? await users.findOne({ _id: new ObjectId(id) }, { projection: { sessionVersion: 1 } })
+      ? await users.findOne({ _id: new ObjectId(id), archivedAt: null }, { projection: { sessionVersion: 1 } })
       : await admins.findOne({ _id: new ObjectId(id) }, { projection: { sessionVersion: 1 } });
   return doc ? (doc.sessionVersion ?? 0) : null;
 }
@@ -835,23 +828,35 @@ export async function sessionVersionOf(kind: "admin" | "user", id: string): Prom
 export async function getUserById(id: string): Promise<User | null> {
   const { users } = await collections();
   if (!ObjectId.isValid(id)) return null;
-  const doc = await users.findOne({ _id: new ObjectId(id) });
+  const doc = await users.findOne({ _id: new ObjectId(id), archivedAt: null });
   return doc ? serializeUser(doc) : null;
 }
+
+/**
+ * Bookings in use: not in Admin → Archive and not deleted for good. Every
+ * list, the patient's own pages, reminders and changes go through this; the
+ * dashboard deliberately does not, so its numbers never move when a booking
+ * is deleted.
+ */
+const LIVE_BOOKING: Filter<BookingDoc> = { archivedAt: null, purgedAt: null };
+const ARCHIVED_BOOKING: Filter<BookingDoc> = { archivedAt: { $ne: null }, purgedAt: null };
 
 /** Attaches bookings made while signed out to the account with that email. */
 async function linkGuestBookings(userId: ObjectId, email: string): Promise<void> {
   const { bookings } = await collections();
   await bookings.updateMany(
-    { "patient.email": email, $or: [{ userId: null }, { userId: { $exists: false } }] },
+    { ...LIVE_BOOKING, "patient.email": email, $or: [{ userId: null }, { userId: { $exists: false } }] },
     { $set: { userId } },
   );
 }
 
-export async function listUserBookings(userId: string, email: string): Promise<Booking[]> {
+/** A patient's bookings; `archived` lists the ones archived instead (Admin → Archive). */
+export async function listUserBookings(userId: string, email: string, archived = false): Promise<Booking[]> {
   const { bookings } = await collections();
   const docs = await bookings
-    .find({ $or: [{ userId: new ObjectId(userId) }, { "patient.email": email }] })
+    .find({
+      $and: [{ $or: [{ userId: new ObjectId(userId) }, { "patient.email": email }] }, archived ? ARCHIVED_BOOKING : LIVE_BOOKING],
+    })
     .sort({ date: -1, time: -1 })
     .limit(200)
     .toArray();
@@ -886,6 +891,7 @@ export async function cancelUserBooking(
 
   const doc = await bookings.findOne({
     _id: new ObjectId(bookingId),
+    ...LIVE_BOOKING,
     $or: [{ userId: new ObjectId(userId) }, { "patient.email": email }],
   });
   if (!doc) return null;
@@ -896,7 +902,7 @@ export async function cancelUserBooking(
 export async function cancelBookingById(bookingId: string): Promise<CancelResult | null> {
   const { bookings } = await collections();
   if (!ObjectId.isValid(bookingId)) return null;
-  const doc = await bookings.findOne({ _id: new ObjectId(bookingId) });
+  const doc = await bookings.findOne({ _id: new ObjectId(bookingId), ...LIVE_BOOKING });
   return doc ? cancelBookingDoc(doc) : null;
 }
 
@@ -1201,7 +1207,7 @@ export async function listSlotBookings(
   const docs = await bookings
     .find(
       { status: "confirmed", date: { $gte: from, $lte: to } },
-      { projection: { slotId: 1, patient: 1, intake: 1, patientType: 1 } },
+      { projection: { slotId: 1, patient: 1, intake: 1, patientType: 1, archivedAt: 1, purgedAt: 1 } },
     )
     .toArray();
   const map: Record<string, SlotBooking[]> = {};
@@ -1209,7 +1215,10 @@ export async function listSlotBookings(
     const key = doc.slotId.toString();
     (map[key] ??= []).push({
       id: doc._id.toString(),
-      name: `${doc.patient.firstName} ${doc.patient.lastName}`,
+      // Archived and deleted bookings still hold their seat, so they're listed.
+      name: doc.purgedAt
+        ? "Deleted record"
+        : `${doc.patient.firstName} ${doc.patient.lastName}${doc.archivedAt ? " (archived)" : ""}`,
       checkedIn: Boolean(doc.intake?.submittedAt),
       newPatient: doc.patientType === "new",
     });
@@ -1974,7 +1983,7 @@ export async function getDashboard(): Promise<Dashboard> {
 export async function listProviderBookings(providerId: string): Promise<Booking[]> {
   const { bookings } = await collections();
   const docs = await bookings
-    .find({ providerId })
+    .find({ providerId, ...LIVE_BOOKING })
     .sort({ date: -1, createdAt: -1 })
     .limit(2000)
     .toArray();
@@ -2005,10 +2014,14 @@ export async function getSlotProvider(slotId: string): Promise<string | null> {
   return doc?.providerId ?? null;
 }
 
-export async function getBookingById(id: string): Promise<Booking | null> {
+/**
+ * A booking in use. Admin pages pass `archived` to open one from the Archive
+ * too; a booking deleted for good is never returned.
+ */
+export async function getBookingById(id: string, options: { archived?: boolean } = {}): Promise<Booking | null> {
   const { bookings } = await collections();
   if (!ObjectId.isValid(id)) return null;
-  const doc = await bookings.findOne({ _id: new ObjectId(id) });
+  const doc = await bookings.findOne({ _id: new ObjectId(id), ...(options.archived ? { purgedAt: null } : LIVE_BOOKING) });
   return doc ? serializeBooking(doc) : null;
 }
 
@@ -2029,6 +2042,7 @@ export async function getBookingByToken(token: string): Promise<Booking | null> 
 export async function countUpcomingBookings(email: string): Promise<number> {
   const { bookings } = await collections();
   return bookings.countDocuments({
+    ...LIVE_BOOKING,
     "patient.email": email.trim().toLowerCase(),
     status: "confirmed",
     date: { $gte: arizonaTodayIso() },
@@ -2053,7 +2067,7 @@ export type ReminderKey = "threeDay" | "oneDay";
 export async function listReminderCandidates(date: string, key: ReminderKey): Promise<Booking[]> {
   const { bookings } = await collections();
   const docs = await bookings
-    .find({ date, status: "confirmed", [`reminders.${key}`]: { $exists: false } })
+    .find({ ...LIVE_BOOKING, date, status: "confirmed", [`reminders.${key}`]: { $exists: false } })
     .limit(500)
     .toArray();
   return docs.map(serializeBooking);
@@ -2075,7 +2089,7 @@ export async function claimReminder(id: string, key: ReminderKey): Promise<boole
 export async function saveIntake(id: string, intake: Intake): Promise<Booking | null> {
   const { bookings } = await collections();
   const doc = await bookings.findOneAndUpdate(
-    { _id: new ObjectId(id) },
+    { _id: new ObjectId(id), ...LIVE_BOOKING },
     { $set: { intake } },
     { returnDocument: "after" },
   );
@@ -2084,7 +2098,7 @@ export async function saveIntake(id: string, intake: Intake): Promise<Booking | 
 
 export async function listBookings(status?: BookingStatus): Promise<Booking[]> {
   const { bookings } = await collections();
-  const filter: Filter<BookingDoc> = status ? { status } : {};
+  const filter: Filter<BookingDoc> = status ? { ...LIVE_BOOKING, status } : LIVE_BOOKING;
   const docs = await bookings.find(filter).sort({ createdAt: -1 }).limit(500).toArray();
   return docs.map(serializeBooking);
 }
@@ -2096,7 +2110,7 @@ export async function setBookingStatus(
   const { slots, bookings } = await collections();
   if (!ObjectId.isValid(id)) return null;
   const _id = new ObjectId(id);
-  const existing = await bookings.findOne({ _id });
+  const existing = await bookings.findOne({ _id, ...LIVE_BOOKING });
   if (!existing || existing.status === status) {
     return existing ? serializeBooking(existing) : null;
   }
@@ -2133,20 +2147,145 @@ export async function setBookingStatus(
   return serializeBooking(doc);
 }
 
-export async function deleteBooking(id: string): Promise<boolean> {
-  const { slots, bookings } = await collections();
-  if (!ObjectId.isValid(id)) return false;
-  // Atomic: of two deletes racing, only one gets the document and frees the seat.
-  const doc = await bookings.findOneAndDelete({ _id: new ObjectId(id) });
-  if (!doc) return false;
+/* ------------------------------------------------------------- archive -- */
 
-  if (doc.status === "confirmed") {
-    await slots.updateOne({ _id: doc.slotId }, { $inc: { booked: -1 } });
-  }
-  // Check-in photos are health information — they go with the booking.
+/**
+ * "Delete booking": it moves to Admin → Archive. The appointment itself is
+ * untouched (cancel it first to free the time), it leaves every list and the
+ * patient's pages, and the dashboard keeps counting it.
+ */
+export async function archiveBooking(id: string, by: string): Promise<boolean> {
+  const { bookings } = await collections();
+  if (!ObjectId.isValid(id)) return false;
+  const result = await bookings.updateOne(
+    { _id: new ObjectId(id), ...LIVE_BOOKING },
+    { $set: { archivedAt: new Date(), archivedBy: by } },
+  );
+  return result.modifiedCount === 1;
+}
+
+export type ArchivedPatient = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  archivedAt: string;
+  archivedBy: string | null;
+  bookings: number;
+};
+
+/** Everything in Admin → Archive, most recently archived first. */
+export async function listArchive(): Promise<{ bookings: Booking[]; patients: ArchivedPatient[] }> {
+  const { bookings, users } = await collections();
+  const [bookingDocs, userDocs] = await Promise.all([
+    bookings.find(ARCHIVED_BOOKING).sort({ archivedAt: -1 }).limit(1000).toArray(),
+    users.find({ archivedAt: { $ne: null } }).sort({ archivedAt: -1 }).limit(1000).toArray(),
+  ]);
+  const patients = await Promise.all(
+    userDocs.map(async (doc) => ({
+      id: doc._id.toString(),
+      name: doc.name,
+      email: doc.email,
+      createdAt: doc.createdAt?.toISOString() ?? "",
+      archivedAt: doc.archivedAt?.toISOString() ?? "",
+      archivedBy: doc.archivedBy ?? null,
+      bookings: await bookings.countDocuments({ ...ARCHIVED_BOOKING, archivedWithUser: doc._id }),
+    })),
+  );
+  return { bookings: bookingDocs.map(serializeBooking), patients };
+}
+
+const objectIds = (ids: string[]) => ids.filter((id) => ObjectId.isValid(id)).map((id) => new ObjectId(id));
+
+/** Back from the Archive into the lists, exactly as they were. */
+export async function restoreBookings(ids: string[]): Promise<number> {
+  const { bookings } = await collections();
+  const result = await bookings.updateMany(
+    { _id: { $in: objectIds(ids) }, ...ARCHIVED_BOOKING },
+    { $set: { archivedAt: null, archivedBy: null, archivedWithUser: null } },
+  );
+  return result.modifiedCount;
+}
+
+/**
+ * Deleting for good. Everything that identifies the patient is erased — name,
+ * contact details, date of birth, reason for visit, insurance, check-in
+ * answers and photos, and the emails sent about it. What stays is what the
+ * dashboard counts (date, time, provider, office, status, new or existing,
+ * how it was booked, whether it had insurance or a check-in), so its numbers
+ * don't change. The record then no longer appears anywhere but those counts.
+ */
+async function purgeBookingDoc(doc: BookingDoc): Promise<void> {
+  const { bookings } = await collections();
   const photos = [doc.intake?.cardFrontId, doc.intake?.cardBackId, doc.intake?.photoIdId];
   await Promise.all(photos.map((photoId) => deletePhoto(photoId ?? null)));
-  return true;
+  const db = await getDb();
+  await db.collection("patient_emails").deleteMany({ bookingId: doc._id });
+  await bookings.updateOne(
+    { _id: doc._id, purgedAt: null },
+    {
+      $set: {
+        purgedAt: new Date(),
+        reason: "",
+        patient: { email: "", firstName: "", lastName: "", dob: "", sex: "" },
+        insurance: doc.insurance ? { carrier: "", plan: "" } : null,
+        intake: (doc.intake?.submittedAt ? { submittedAt: doc.intake.submittedAt } : null) as Intake | null,
+        userId: null,
+        archivedWithUser: null,
+      },
+    },
+  );
+}
+
+/** Only archived bookings can be deleted for good. Returns how many were. */
+export async function purgeBookings(ids: string[]): Promise<number> {
+  const { bookings } = await collections();
+  const docs = await bookings.find({ _id: { $in: objectIds(ids) }, ...ARCHIVED_BOOKING }).toArray();
+  for (const doc of docs) await purgeBookingDoc(doc);
+  return docs.length;
+}
+
+/** Patients back from the Archive, with the bookings archived alongside them. */
+export async function restoreUsers(ids: string[]): Promise<number> {
+  const { users, bookings } = await collections();
+  const _ids = objectIds(ids);
+  const result = await users.updateMany(
+    { _id: { $in: _ids }, archivedAt: { $ne: null } },
+    { $set: { archivedAt: null, archivedBy: null } },
+  );
+  await bookings.updateMany(
+    { archivedWithUser: { $in: _ids }, ...ARCHIVED_BOOKING },
+    { $set: { archivedAt: null, archivedBy: null, archivedWithUser: null } },
+  );
+  return result.modifiedCount;
+}
+
+/**
+ * Archived patients deleted for good: their account, sign-in codes and every
+ * booking of theirs (erased as in purgeBookingDoc, so the dashboard keeps its
+ * numbers). Returns the ids removed — the caller erases their chats.
+ */
+export async function purgeUsers(ids: string[]): Promise<string[]> {
+  const { users, bookings } = await collections();
+  const docs = await users.find({ _id: { $in: objectIds(ids) }, archivedAt: { $ne: null } }).toArray();
+  const db = await getDb();
+  for (const user of docs) {
+    const owned = await bookings
+      .find({
+        purgedAt: null,
+        $or: [
+          { userId: user._id },
+          { archivedWithUser: user._id },
+          // A guest booking under the same email made after the archive is someone's live visit — kept.
+          { "patient.email": user.email, archivedAt: { $ne: null } },
+        ],
+      })
+      .toArray();
+    for (const doc of owned) await purgeBookingDoc(doc);
+    await db.collection("email_otps").deleteMany({ email: user.email });
+    await users.deleteOne({ _id: user._id });
+  }
+  return docs.map((doc) => doc._id.toString());
 }
 
 /* -------------------------------------------- site content (hero, offices) -- */

@@ -29,11 +29,22 @@ export default async function UserDetailPage({
   return (
     <div>
       <Link
-        href="/admin/users"
+        href={user.archivedAt ? "/admin/archive" : "/admin/users"}
         className="focus-ring text-[14px] font-semibold text-plum-soft transition hover:text-wine"
       >
-        ← All patients
+        {user.archivedAt ? "← Archive" : "← All patients"}
       </Link>
+
+      {user.archivedAt && (
+        <p className="mt-4 rounded-2xl border border-wine/30 bg-wine-soft px-5 py-4 text-[15px] text-wine-deep">
+          <strong className="font-semibold">This patient is in the Archive</strong> and can&apos;t sign in. Restore
+          or delete them permanently from{" "}
+          <Link href="/admin/archive" className="font-semibold underline">
+            Admin → Archive
+          </Link>
+          .
+        </p>
+      )}
 
       <div className="mt-4 flex flex-wrap items-start gap-5 rounded-2xl border border-mist bg-white p-6">
         <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-wine text-[20px] font-bold text-white">
@@ -59,9 +70,11 @@ export default async function UserDetailPage({
           <Stat value={user.bookingsCancelled} label="Cancelled" />
         </div>
 
-        <div className="w-full sm:w-auto">
-          <DeleteUserButton id={user.id} name={user.name} bookings={user.bookingsTotal} />
-        </div>
+        {!user.archivedAt && (
+          <div className="w-full sm:w-auto">
+            <DeleteUserButton id={user.id} name={user.name} bookings={user.bookingsTotal} />
+          </div>
+        )}
       </div>
 
       {next && (
@@ -80,6 +93,19 @@ export default async function UserDetailPage({
         <p className="mt-4 rounded-2xl border border-mist bg-white p-6 text-plum-soft">
           This patient hasn&apos;t booked an appointment yet.
         </p>
+      ) : user.archivedAt ? (
+        <ul className="mt-4 divide-y divide-mist rounded-2xl border border-mist bg-white">
+          {bookings.map((booking) => (
+            <li key={booking.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-[15px]">
+              <Link href={`/admin/bookings/${booking.id}`} className="font-semibold text-plum link-underline">
+                {formatShort(booking.date)} · {booking.time}
+              </Link>
+              <span className="text-[13px] text-plum-soft">
+                {booking.status === "confirmed" ? "Confirmed" : "Cancelled"} · archived
+              </span>
+            </li>
+          ))}
+        </ul>
       ) : (
         <BookingsTable initial={bookings} />
       )}

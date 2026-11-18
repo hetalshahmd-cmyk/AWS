@@ -5,6 +5,7 @@ import { CapacityChart, Meter, WeeksChart } from "@/components/admin/DashboardCh
 import RefreshingBookButton from "@/components/admin/RefreshingBookButton";
 import ProviderAvatar from "@/components/site/ProviderAvatar";
 import { formatLong, formatShort } from "@/lib/availability";
+import { bookingPatientName, type Booking } from "@/lib/models";
 import { getDashboard } from "@/lib/repo";
 import { officeById, providerById, shortProviderName } from "@/lib/scheduling";
 
@@ -159,8 +160,8 @@ export default async function DashboardPage() {
                 const checkedIn = Boolean(booking.intake?.submittedAt);
                 return (
                   <li key={booking.id}>
-                    <Link
-                      href={`/admin/bookings/${booking.id}`}
+                    <RowLink
+                      booking={booking}
                       className="focus-ring flex items-center gap-3 rounded-lg px-2 py-2.5 transition hover:bg-shell"
                     >
                       <span className="w-[68px] shrink-0 font-display text-[1.05rem] tabular-nums text-plum">
@@ -169,7 +170,8 @@ export default async function DashboardPage() {
                       {provider && <ProviderAvatar provider={provider} size="xs" />}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[14px] font-semibold">
-                          {booking.patient.firstName} {booking.patient.lastName}
+                          {bookingPatientName(booking)}
+                          <ArchivedTag booking={booking} />
                           {booking.patientType === "new" && (
                             <span className="ml-1.5 rounded bg-wine-soft px-1 py-0.5 text-[10px] font-bold uppercase text-wine-deep">
                               New
@@ -195,7 +197,7 @@ export default async function DashboardPage() {
                           {checkedIn ? "✓ Checked in" : "Not checked in"}
                         </span>
                       </span>
-                    </Link>
+                    </RowLink>
                   </li>
                 );
               })}
@@ -278,13 +280,14 @@ export default async function DashboardPage() {
           <ul className="-mx-2 divide-y divide-mist">
             {data.recent.map((booking) => (
               <li key={booking.id}>
-                <Link
-                  href={`/admin/bookings/${booking.id}`}
+                <RowLink
+                  booking={booking}
                   className="focus-ring flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-2 py-2.5 transition hover:bg-shell"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14px] font-semibold">
-                      {booking.patient.firstName} {booking.patient.lastName}
+                      {bookingPatientName(booking)}
+                      <ArchivedTag booking={booking} />
                     </span>
                     <span className="block truncate text-[12px] text-plum-soft">
                       {formatShort(booking.date)} · {booking.time} ·{" "}
@@ -305,12 +308,32 @@ export default async function DashboardPage() {
                   >
                     {booking.status === "confirmed" ? "Confirmed" : "Cancelled"}
                   </span>
-                </Link>
+                </RowLink>
               </li>
             ))}
           </ul>
         </Panel>
       </div>
     </div>
+  );
+}
+
+/** A booking row: links to the booking, unless it was deleted for good (nothing left to open). */
+function RowLink({ booking, className, children }: { booking: Booking; className: string; children: React.ReactNode }) {
+  if (booking.purgedAt) return <div className={className.replace("transition hover:bg-shell", "")}>{children}</div>;
+  return (
+    <Link href={`/admin/bookings/${booking.id}`} className={className}>
+      {children}
+    </Link>
+  );
+}
+
+/** Archived and deleted bookings still count here — marked so the list makes sense. */
+function ArchivedTag({ booking }: { booking: Booking }) {
+  if (!booking.archivedAt) return null;
+  return (
+    <span className="ml-1.5 rounded bg-shell px-1 py-0.5 text-[10px] font-bold uppercase text-plum-soft">
+      {booking.purgedAt ? "Deleted" : "Archived"}
+    </span>
   );
 }

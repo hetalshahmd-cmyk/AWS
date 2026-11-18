@@ -74,6 +74,12 @@ const PATHS = {
     </>
   ),
   external: <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />,
+  archive: (
+    <>
+      <rect x="3" y="4" width="18" height="5" rx="1.5" />
+      <path d="M5 9v9.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V9M10 13h4" />
+    </>
+  ),
 } satisfies Record<string, JSX.Element>;
 
 export default function Ico({ name, className = "" }: { name: IcoName; className?: string }) {

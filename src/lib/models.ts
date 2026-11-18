@@ -58,6 +58,12 @@ export type UserDoc = {
   lastLoginAt: Date | null;
   /** Bumped on a password change: older sessions stop working. */
   sessionVersion?: number;
+  /**
+   * Set when an admin deletes the patient: the account moves to Admin →
+   * Archive, can't sign in, and can be restored or deleted for good there.
+   */
+  archivedAt?: Date | null;
+  archivedBy?: string | null;
 };
 
 /** Never carries passwordHash — this is what leaves the server. */
@@ -190,11 +196,23 @@ export type BookingDoc = {
   /** How the booking was made: signed-in account or verified-email guest. */
   via?: "account" | "guest" | "staff";
   createdAt: Date;
+  /**
+   * Admin → Archive. A deleted booking is first archived: hidden from every
+   * list and from the patient, but still counted on the dashboard. Deleting
+   * it for good from the Archive sets purgedAt and erases everything that
+   * identifies the patient, keeping only what the dashboard counts (date,
+   * time, provider, office, status, new/existing, how it was booked).
+   */
+  archivedAt?: Date | null;
+  archivedBy?: string | null;
+  /** Archived together with this patient account (restored with it too). */
+  archivedWithUser?: ObjectId | null;
+  purgedAt?: Date | null;
 };
 
 export type Booking = Omit<
   BookingDoc,
-  "_id" | "slotId" | "userId" | "createdAt" | "providerId" | "officeId"
+  "_id" | "slotId" | "userId" | "createdAt" | "providerId" | "officeId" | "archivedAt" | "archivedWithUser" | "purgedAt"
 > & {
   id: string;
   slotId: string;
@@ -202,7 +220,15 @@ export type Booking = Omit<
   officeId: string | null;
   userId: string | null;
   createdAt: string;
+  archivedAt: string | null;
+  purgedAt: string | null;
 };
+
+/** The name to show for a booking — a permanently deleted one has none left. */
+export function bookingPatientName(booking: Pick<Booking, "patient" | "purgedAt">): string {
+  if (booking.purgedAt) return "Deleted record";
+  return `${booking.patient.firstName} ${booking.patient.lastName}`.trim();
+}
 
 /** "2:45 pm" -> 885, so slots sort chronologically. */
 export function timeToMinutes(time: string): number {
@@ -254,7 +280,8 @@ export function patientView(booking: Booking): Booking {
 }
 
 export function serializeBooking(doc: BookingDoc): Booking {
-  const { _id, slotId, userId, createdAt, providerId, officeId, ...rest } = doc;
+  const { _id, slotId, userId, createdAt, providerId, officeId, archivedAt, archivedWithUser, purgedAt, ...rest } = doc;
+  void archivedWithUser;
   return {
     id: _id.toString(),
     slotId: slotId?.toString() ?? "",
@@ -263,5 +290,7 @@ export function serializeBooking(doc: BookingDoc): Booking {
     userId: userId?.toString() ?? null,
     createdAt: createdAt?.toISOString() ?? "",
     ...rest,
+    archivedAt: archivedAt ? archivedAt.toISOString() : null,
+    purgedAt: purgedAt ? purgedAt.toISOString() : null,
   };
 }
